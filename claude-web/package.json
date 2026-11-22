@@ -1,0 +1,22 @@
+{
+  "name": "claude-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Claude Code web UI (PWA) behind the DSH auth gateway",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node server/index.mjs",
+    "dev": "AUTH_MODE=dev CLAUDE_RUNTIME=fake PORT=3091 node server/index.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --test 'test/*/*.test.mjs'",
+    "test:server": "node --test test/server",
+    "test:pwa": "node --test test/pwa",
+    "test:deploy": "node --test test/deploy"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.330"
+  }
+}

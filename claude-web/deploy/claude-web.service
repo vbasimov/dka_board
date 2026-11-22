@@ -1,0 +1,51 @@
+[Unit]
+Description=Claude Web UI (PWA) behind DSH auth gateway
+Documentation=file:/opt/claude-web/README.md
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=claudeapp
+Group=claudeapp
+WorkingDirectory=/opt/claude-web
+EnvironmentFile=/etc/claude-web/env
+Environment=NODE_ENV=production
+Environment=HOME=/var/lib/claude-web
+Environment=CLAUDE_CONFIG_DIR=/var/lib/claude-web/claude-config
+Environment=DISABLE_AUTOUPDATER=1
+ExecStart=/usr/bin/node /opt/claude-web/server/index.mjs
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=20
+KillSignal=SIGTERM
+UMask=0077
+
+# ── hardening ───────────────────────────────────────────────────────────────
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+ReadWritePaths=/var/lib/claude-web /var/log/claude-web /srv/claude-web/workspaces
+MemoryMax=1150M
+MemoryHigh=950M
+CPUQuota=150%
+TasksMax=256
+
+[Install]
+WantedBy=multi-user.target

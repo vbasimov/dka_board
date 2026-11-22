@@ -1,0 +1,192 @@
+# Caddyfile auth-gateway DSH (фаза 1: loopback, без публикации).
+#
+# Схема (playbook/security/architect.md, вариант A/A′):
+#   tailscaled Funnel :10000 → Caddy 127.0.0.1:8081 → (forward_auth + proxy)
+#   → Node auth-service 127.0.0.1:9090 → DSH 127.0.0.1:3080.
+#
+# TLS терминирует tailscaled (Funnel), здесь слушатель HTTP на loopback:
+# наружу этот порт не публикуется (см. install.sh и README).
+#
+# Устанавливается как /etc/dsh-gateway/Caddyfile и запускается отдельным
+# юнитом dsh-gateway-caddy.service (admin API отключён; reload = restart).
+{
+	# Admin API не нужен: убирает локальный root-эквивалент. Перезагрузка
+	# конфига — `systemctl restart dsh-gateway-caddy` (доли секунды).
+	admin off
+	persist_config off
+
+	servers {
+		# Доверяем X-Forwarded-* только от loopback (tailscaled/Caddy-соседи).
+		# Tailscale Funnel terminated TLS on tailscaled and proxied to
+		# 127.0.0.1:8081; tailscaled REPLACES client X-Forwarded-For with the
+		# single real client IP (server check 2026-11-21: remote_ip=127.0.0.1,
+		# XFF=[68.169.152.122], client_ip=68.169.152.122; client-supplied
+		# XFF/X-Gateway-Client-IP were not passed through). Caddy 2.11 with a
+		# trusted peer uses the LEFTMOST XFF value, so safety depends on the
+		# Funnel overwriting XFF, not appending; do not add non-loopback
+		# trusted proxies. See README «Реальный IP через Funnel» + §10.5 review.
+		trusted_proxies static 127.0.0.1/32 ::1/128
+		max_header_size 32KB
+		timeouts {
+			read_header 20s
+			read_body 300s
+			write 0s
+			idle 5m
+		}
+	}
+}
+
+http://:8081 {
+	# Слушаем ТОЛЬКО loopback: снаружи порт не виден (публикация — Funnel :10000).
+	# Site-address без host обязателен: Host приходит публичный (ts.net:10000),
+	# и site по 127.0.0.1 не совпал бы ни с одним запросом.
+	bind 127.0.0.1
+
+	# Порядок директив важен: route сохраняет записанный порядок (в отличие от
+	# автоматической сортировки директив вне route).
+	route {
+		# ── защитные заголовки ответа (P0-19) ────────────────────────────────
+		# HSTS — БЕЗ includeSubDomains: ts.net общий домен Tailscale.
+		header {
+			Strict-Transport-Security "max-age=31536000"
+			X-Content-Type-Options "nosniff"
+			X-Frame-Options "DENY"
+			Referrer-Policy "no-referrer"
+			Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+			Content-Security-Policy "frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
+			X-Robots-Tag "noindex, nofollow, noarchive"
+			-Server
+		}
+
+		# ── кэширование статики shell (PWA) ─────────────────────────────────
+		# HTML, API, auth и всё динамическое — no-store. Immutable-бандлы
+		# (hashed /assets/* и /plugins/ с query ?@...&rev=) отдаются dsh с
+		# long-cache заголовками; перекрывать их no-store нельзя, иначе
+		# холодный старт PWA каждый раз качает ~7.7 МБ plugin-бандлов.
+		# Матчер по raw URI: бандлы — это путь "/plugins/" + query "?@...".
+		@pwa_no_store expression `!({http.request.uri}.startsWith("/assets/") || {http.request.uri}.startsWith("/plugins/??"))`
+		header @pwa_no_store Cache-Control "no-store, private"
+
+		# ── вырезаем клиентские trust-заголовки (P0-13) ──────────────────────
+		# Ни Caddy, ни auth-service, ни DSH не должны верить этим значениям от
+		# клиента. auth-service дополнительно чистит их перед DSH.
+		# (одно поле на директиву: так парсер request_header принимает delete-форму)
+		request_header -X-Auth-*
+		request_header -Remote-User
+		request_header -Remote-Email
+		request_header -X-Forwarded-User
+		request_header -X-Forwarded-For
+		request_header -X-Forwarded-Host
+		request_header -X-Forwarded-Proto
+		request_header -X-Forwarded-Port
+		request_header -X-Real-IP
+		request_header -Forwarded
+		request_header -Cf-Access-*
+		request_header -Authorization
+		request_header -X-HTTP-Method-Override
+		# M-1: реальный IP клиента. Сначала вырезаем клиентскую подделку, затем
+		# ставим адрес, который Caddy определил после trusted_proxies (Funnel/
+		# tailscaled). auth-service доверяет заголовку только от loopback.
+		request_header -X-Gateway-Client-IP
+		request_header X-Gateway-Client-IP {client_ip}
+
+		# ── лимиты тела/методов (P0-14/P0-25) ────────────────────────────────
+		request_body {
+			max_size 64MB
+		}
+		@badMethods not method GET HEAD POST OPTIONS
+		respond @badMethods "method not allowed" 405
+
+		# ── публичные (не требующие сессии) точки ────────────────────────────
+		# Вход: /tg (страница Mini App) и /auth/* (initData/TOTP/logout).
+		# PWA-метаданные установки публичны без сессии: сервис сборки WebAPK
+		# (Chrome/Android) забирает манифест и PNG-иконки по публичному URL
+		# без cookie пользователя; с forward_auth он получал 401 и установка
+		# падала («app cannot be installed»). /sw.js и API остаются за сессией.
+		@pwa_install path /manifest.webmanifest /icon-192.png /icon-512.png /icon-maskable-512.png /apple-touch-icon.png
+		handle @pwa_install {
+			reverse_proxy 127.0.0.1:3080
+		}
+		handle /tg {
+			reverse_proxy 127.0.0.1:9090
+		}
+		handle /auth/* {
+			reverse_proxy 127.0.0.1:9090
+		}
+		# health отдаёт auth-service: если он упал, клиент получит 503 (fail-closed),
+		# а не «ложный» 200 от Caddy.
+		handle /healthz {
+			reverse_proxy 127.0.0.1:9090
+		}
+
+		# ── запрещённое/служебное наружу (P0-12/P0-17) ──────────────────────
+		# /connect — API-оператор DSH (cookie оператора), публиковать нельзя.
+		handle /connect {
+			respond "not found" 404
+		}
+		handle /connect/* {
+			respond "not found" 404
+		}
+		handle /verify {
+			respond "not found" 404
+		}
+		handle /internal/* {
+			respond "not found" 404
+		}
+
+		# ── всё остальное — за auth ──────────────────────────────────────────
+		handle {
+			forward_auth 127.0.0.1:9090 {
+				uri /verify
+			}
+			reverse_proxy 127.0.0.1:9090 {
+				# SSE/потоки агента: не буферизовать.
+				flush_interval -1
+				# Host НЕ переписываем: Caddy сохраняет оригинальный Host
+				# (публичный authority) — нужно для DSH Host/Origin-fence
+				# (P0-17). Плейсхолдер {host} теряет порт, поэтому
+				# header_up Host здесь не используется.
+				header_up -X-Auth-Request-User
+				header_up -Remote-User
+				header_up -X-Forwarded-User
+				header_up -X-Real-IP
+				header_up -Authorization
+			}
+		}
+	}
+
+	# Fail-closed (P0-24): ошибка соединения с auth-service/DSH → 503, не 200/101.
+	# (handle_errors срабатывает на ошибки хендлеров, включая dial error reverse_proxy.)
+	handle_errors {
+		@unavailable `{err.status_code} >= 500`
+		handle @unavailable {
+			respond "auth gateway unavailable" 503
+		}
+		handle {
+			respond "gateway error" 500
+		}
+	}
+
+	# Логи без query/cookie/Authorization (P0-19/§8.8): access-лог JSON, URI
+	# обрезается до «?»; Cookie/Authorization/Referer удаляются целиком.
+	# P0 REPORT-v3 RT-APP-1: response Set-Cookie (сырые sid/device-токены) тоже
+	# не должны попадать в лог — удаляем и из заголовков ответа.
+	log {
+		output file /var/log/dsh-gateway/caddy-access.log {
+			mode 0600
+			roll_size 10MiB
+			roll_keep 5
+			roll_keep_for 720h
+		}
+		format filter {
+			wrap json
+			fields {
+				request>uri regexp `\?.*` ""
+				request>headers>Cookie delete
+				request>headers>Authorization delete
+				request>headers>Referer delete
+				resp_headers>Set-Cookie delete
+			}
+		}
+	}
+}

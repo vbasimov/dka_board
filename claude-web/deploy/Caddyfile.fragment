@@ -1,0 +1,131 @@
+# ============================================================================
+# claude-web — Caddy-фрагмент для существующего auth-шлюза DSH.
+#
+# Источник: docs/claude-pwa-runbook.md §5 (и docs/claude-pwa-plan.md §11).
+# Публичный origin: https://vps-4692.tailfbc4b2.ts.net:10000
+#
+# НЕ ПРАВИТЬ ЖИВОЙ CADDYFILE РУКАМИ. Применение:
+#   deploy/apply-caddy.sh --dry-run     # по умолчанию: копия в /tmp + diff + validate
+#   deploy/apply-caddy.sh --install     # бэкап, установка, restart (только Lead/root)
+#   deploy/apply-caddy.sh --rollback    # восстановление Caddyfile из бэкапа
+#
+# Обе секции вставляются ВНУТРЬ существующего route { ... }:
+#   • секция A — ПОСЛЕ всех глобальных header-директив route (иначе глобальный
+#     header перетирает CSP; проверено на Caddy 2.11.9), но ДО @pwa_no_store/
+#     request_header/handle-веток;
+#   • секция B — после "handle /internal/*", ДО финального catch-all "handle {".
+#     B задаёт кэш/Content-Type статики: sw.js — deferred no-store; публичные
+#     manifest/icons — header внутри handle @claude_install (после 405-respond);
+#     /claude/assets/* — immutable только на 2xx app (handle_response status 2xx),
+#     чтобы 401 от forward_auth не кэшировался. HTML/API — no-store.
+# apply-caddy.py делает это сам, с проверкой якорей и отказом при неоднозначности.
+#
+# __EDGE_SECRET__ — ПЛЕЙСХОЛДЕР (не секрет). Значение подставляет apply-caddy.py
+# при --install: EDGE_SECRET читается из /etc/claude-web/env (0600 root:root),
+# ровно 64 hex; в git/логи/чат реальный секрет не попадает.
+# ============================================================================
+
+# >>> claude-web:fragment:A:begin >>>
+	# ── A. CSP для /claude/* — ПОСЛЕ глобального header. ─────────────────────────
+	# Caddy 2.11.9: header, исполняемый позже, перетирает CSP (последний setter
+	# выигрывает). Поэтому блок ставится ПОСЛЕ всех глобальных header-директив
+	# route (header { ... }, а также @nonAuthCsp + header @nonAuthCsp CSP) и ДО
+	# @pwa_no_store/request_header/handle. Обратный порядок проверенно терял
+	# default-src 'self' в ответе /claude/ (эмпирическая проверка на VPS).
+	header /claude/* {
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
+	}
+# <<< claude-web:fragment:A:end <<<
+
+# >>> claude-web:fragment:B:begin >>>
+	# ── B. Claude Web UI (/claude/) ───────────────────────────────────────────
+	# 1) Origin-guard — ДО install-ветки и forward_auth; любой cross-origin,
+	#    включая WS, → 403. Сравниваем весь Origin, не полагаемся на Upgrade.
+	@claude_bad_origin {
+		path /claude/*
+		expression `{http.request.header.Origin} != '' && {http.request.header.Origin} != 'https://vps-4692.tailfbc4b2.ts.net:10000'`
+	}
+	respond @claude_bad_origin "forbidden" 403
+
+	# 1b) /claude/sw.js — всегда no-store (SW не должен кэшироваться).
+	# deferred force-set безопасен для любого статуса: no-store и так стоит
+	# глобальным @pwa_no_store, правило лишь убирает дубль и фиксирует значение.
+	# NB: глобальный deferred-header НЕ годится для приватных assets (см. ниже):
+	# он применяется и к 401 от forward_auth (эмпирика: 401 получал immutable).
+	@claude_sw path /claude/sw.js
+	header @claude_sw >Cache-Control "no-store"
+
+	# 2) Публичные install-ассеты: ровно 5 точных путей, только GET/HEAD;
+	#    отдаёт Caddy из /srv/claude-web/public (не приложение).
+	@claude_install path /claude/manifest.webmanifest \
+	                  /claude/icons/icon-192.png \
+	                  /claude/icons/icon-512.png \
+	                  /claude/icons/icon-maskable-512.png \
+	                  /claude/icons/apple-touch-icon-180.png
+	handle @claude_install {
+		@not_get not method GET HEAD
+		respond @not_get "method not allowed" 405
+		# Content-Type/Cache-Control — только для успешных ответов file_server:
+		# header внутри handle стоит после respond 405, поэтому 405/401 их не
+		# получают. .webmanifest file_server не типизирует — задаём явно.
+		@claude_manifest path /claude/manifest.webmanifest
+		header @claude_manifest Cache-Control "no-cache"
+		header @claude_manifest Content-Type "application/manifest+json"
+		@claude_icons path /claude/icons/*
+		header @claude_icons Cache-Control "public, max-age=86400"
+		header @claude_icons Content-Type "image/png"
+		root * /srv/claude-web/public
+		file_server
+	}
+
+	handle /claude {
+		redir * /claude/ 308
+	}
+
+	# 3) Приватная часть: та же сессия шлюза, без cookie шлюза в приложение.
+	# route { } фиксирует записанный порядок (внутри вложенных блоков Caddy иначе
+	# сортирует директивы): forward_auth → (только после успеха) ветка assets.
+	handle /claude/* {
+		route {
+			forward_auth 127.0.0.1:9090 {
+				uri /verify
+				copy_headers X-Auth-User
+			}
+			# 3a) /claude/assets/* — hashed-бандлы: immutable-Cache-Control ставим
+			# ТОЛЬКО на 2xx ответ app (handle_response 2xx), чтобы 401/403 от
+			# forward_auth и ошибки app не кэшировались с immutable. 401 сюда не
+			# доходит (forward_auth терминален) и остаётся с no-store.
+			@claude_assets path /claude/assets/*
+			handle @claude_assets {
+				reverse_proxy 127.0.0.1:3090 {
+					flush_interval -1
+					header_up X-Forwarded-Proto https
+					header_up -Cookie
+					header_up X-Claude-Edge __EDGE_SECRET__
+					header_up -Authorization
+					header_up -X-Forwarded-User
+					header_up -X-Real-IP
+					@claude_asset_ok status 2xx
+					handle_response @claude_asset_ok {
+						header >Cache-Control "public, max-age=86400, immutable"
+						copy_response
+					}
+				}
+			}
+			# 3b) остальное под /claude/ (HTML/API/SSE/sw.js) — та же сессия;
+			# Cache-Control no-store (глобальный @pwa_no_store + app), поток не
+			# трогаем: обычный reverse_proxy с flush_interval -1.
+			handle {
+				reverse_proxy 127.0.0.1:3090 {
+					flush_interval -1
+					header_up X-Forwarded-Proto https
+					header_up -Cookie
+					header_up X-Claude-Edge __EDGE_SECRET__
+					header_up -Authorization
+					header_up -X-Forwarded-User
+					header_up -X-Real-IP
+				}
+			}
+		}
+	}
+# <<< claude-web:fragment:B:end <<<
