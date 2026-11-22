@@ -12,6 +12,9 @@ export const USER_HASH = '8d9462ad9d8e';
 export const DEV_USER_HASH = 'deadbeef0001';
 export const PUBLIC_ORIGIN = 'https://vps-4692.tailfbc4b2.ts.net:10000';
 export const PUBLIC_HOST = 'vps-4692.tailfbc4b2.ts.net:10000';
+// Второй публичный origin (Tailscale Funnel :8443 → отдельный Caddy).
+export const EXTRA_ORIGIN = 'https://vps-4692.tailfbc4b2.ts.net:8443';
+export const EXTRA_HOST = 'vps-4692.tailfbc4b2.ts.net:8443';
 export const TEST_TOKEN = 'test-token-not-real';
 
 export function tempRoot(prefix = 'claude-web-test-') {

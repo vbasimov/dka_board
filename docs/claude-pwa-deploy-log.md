@@ -109,6 +109,94 @@ forward_auth отдал 401); manifest/icons — правила внутрь `ha
   DSH `/` 401, `/manifest.webmanifest` 200, `/tg` 200; access-log без Set-Cookie/cookie/edge;
   сервисы active; 3090/8081 только loopback.
 
+## Фикс update-баннера PWA (11:16 UTC)
+
+Найдено на живом: в Chrome вкладка `/claude/` показывала «Доступно обновление», кнопка «Обновить»
+ничего не делала. Причина: баннер срабатывал на `updatefound` при `container.controller` — на первом
+заходе под чужим service worker (DSH root scope) наша регистрация `/claude/sw.js` устанавливается и
+активируется сразу (это не обновление, `registration.waiting` нет), но контроллер (чужой) уже был →
+баннер показывался, а клик молча скрывал плашку без перезагрузки.
+
+Фикс (web/src/sw-register.ts, web/src/app.tsx):
+- баннер только при `reg.waiting` (реально ожидающий воркер), а не по факту чужого контроллера;
+- `applyServiceWorkerUpdate()`: при отсутствии `waiting` — принудительный `reloadOnce(true)` (тап
+  никогда не no-op); после `SKIP_WAITING` — страховочный reload через 4 с, если воркер не ответил;
+- `controllerchange` по явному действию пользователя перезагружает страницу в обход 5-секундного
+  анти-петлевого guard'а; UI скрывает баннер сразу.
+
+Тесты: `test/pwa/sw-update.test.mjs` (+4), всего 230/230. Пересборка и `install.sh --artifact`:
+RESULT=ok, новый бандл `index-BULplnDI.js` отдаётся приложением, `acceptance.sh --deep` 32/32 PASS.
+Владельцу нужен один hard-reload (Cmd+Shift+R), чтобы получить новый JS; дальнейшие обновления —
+по кнопке.
+
+## Отдельный origin для Claude PWA (12:09-12:11 UTC)
+
+Проблема: DSH установлен как PWA со scope `/`, поэтому ссылки на `...:10000/claude/`
+открывались в DSH-приложении (вложенный scope), на Android — даже после установки Claude.
+Решение (вариант B, без домена): второй публичный порт Tailscale Funnel `:8443` → отдельный
+Caddy `127.0.0.1:8444` (независимый от Caddy гейтвея, чтобы деплой гейтвея его не сносил).
+Порт — часть origin, значит это отдельное PWA; cookie `__Host-dsh_session` host-bound
+(порты cookie не различает), поэтому вход остаётся общим.
+
+Сделано:
+- xray inbound `8443` перенесён на `2096` (443/2053/2096; конфиг провалидирован, бэкап
+  `/root/xray-backup-20261122-115236`), ufw allow 2096, `tailscale funnel --bg --yes
+  --https=8443 http://127.0.0.1:8444`.
+- Гейтвей: `GATEWAY_EXTRA_ALLOWED_ORIGINS=https://…:8443` (+ `GATEWAY_CLAUDE_ORIGIN`),
+  `checkHost` принимает authority второго origin; кнопка «Открыть Claude» в @bvauthbot ведёт
+  на `https://…:8443/tg?next=/claude/`; бэкап `/root/gateway-lib-backup-20261122-120933`.
+- Приложение: `EXTRA_ORIGINS=https://…:8443` в `/etc/claude-web/env` (Host/Origin allowlist),
+  передеплой артефактом (install.sh RESULT=ok), `Host :8443` → 200.
+- Новый edge `claude-web/edge-claude/` (Caddy :8444 + systemd + install/rollback): install.sh
+  RESULT=ok, 15+ post-checks; отдельный лог `/var/log/claude-edge/access.log` без cookie/query/
+  Set-Cookie/X-Claude-Edge. Тесты: gateway 167/167, claude-web 269/269 (включая edge-claude).
+- Публично: `https://…:8443/claude/` → 401 + полный CSP; manifest 200 application/manifest+json;
+  иконки 200 image/png; POST manifest 405; чужой Origin 403; `/claude` 308; `/` 302 на :10000;
+  `/tg` 200 (вход с нового origin). Старый `/claude/` на :10000 работает.
+- Сеть: у домашнего провайдера выяснилось, что TCP 443 до IP сервера блокируется (REALITY на
+  443 не проходит; 2053/2096 проходят, SSH 22 проходит). В Clash-профиле нода `VLESS-8443`
+  заменена на `VLESS-2096` (бэкап профиля рядом), активная нода — `VLESS-2053`.
+  Это не связано с панелью/PWA, но объясняет обрыв прокси в момент работ.
+
+## Вход через @bvauthbot и два отдельных PWA (11:22 UTC)
+
+По решению владельца: origin один (Funnel отдаёт только :10000, 443/8443 заняты xray), но DSH и
+Claude остаются **двумя разными устанавливаемыми приложениями** — разные `id`/`scope`/`start_url`
+(DSH: `/`, `DeepSeek Harness`; Claude: `/claude/`, `Claude Workspace`), свои иконки и SW.
+
+Изменения:
+- **Auth-бот @bvauthbot** (`lib/authbot.mjs`): на `/start` две web_app-кнопки — «Открыть DSH»
+  (`/tg`) и «Открыть Claude» (`/tg?next=/claude/`); `/claude` — алиас панели; help обновлён.
+- **Страница входа `/tg`** (`lib/pages.mjs`): `next` строго из allowlist `['/', '/claude/']`
+  (никакого open redirect), все успешные входы (Telegram initData, TOTP, recovery, browser
+  password+TOTP) идут через `goNext()`; статус «открываем Claude/DSH». Серверный `/auth/*`
+  не менялся (по-прежнему отдаёт `next:'/'`, страница решает по allowlist).
+- **Бот уведомлений**: команда `/claude` удалена (и код, и конфиг, и env); вход в Claude — только
+  через auth-бота.
+- **Claude PWA**: добавлена кнопка «Установить» (beforeinstallprompt/appinstalled, скрыта в
+  standalone и после установки) — ставится независимо от установленного DSH.
+- Деплой: gateway — только `lib/pages.mjs`+`lib/authbot.mjs` + restart `dsh-gateway-auth`
+  (Caddy не трогали, маршрут `/claude/` сохранён), бэкап `/root/gateway-lib-backup-20261122-112255`;
+  бот уведомлений — бэкап `/root/telegram-bot-backup-20261122-112349`; приложение — новый артефакт
+  `install.sh` RESULT=ok, бандл `index-DVLH_H0M.js`.
+- Проверки: gateway-тесты 162/162 (`tests/pages.test.mjs` — allowlist/without open redirect),
+  бот уведомлений 292/292, claude-web 233/233; `acceptance.sh --deep` 32/32 PASS; `/tg` 200
+  (allowlist в странице), `/claude/` 401, DSH не затронут.
+
+## Третий PWA (решение: пока не делать)
+
+Официального self-hosted веб-интерфейса Claude нет: claude.ai — только SaaS; у Anthropic есть
+[self-hosted environments для Claude Code](https://websitemain.claude.com/blog/run-claude-code-sessions-on-your-own-compute?r=0)
+(public beta: сессии исполняются на твоей инфраструктуре, но UI — их веб/мобильный) и
+[enterprise-консоль self-hosted Managed Agents](https://platform.claude.com/docs/en/managed-agents/self-hosted/console.md)
+(по заявке). Claude Cowork — облачный, self-hosted версии нет
+([разбор](https://github.com/kortix-ai/suna/blob/3fe7c67ffbad34d97f45ed64a91f28f39a879e68/apps/web/content/posts/self-hosted-claude-cowork.md)).
+Сторонние UI: [Open WebUI с Anthropic API-ключом](https://docs.openwebui.com/alternatives/claude)
+(отдельный биллинг по токенам), агентские платформы Suna, обёртка десктоп-приложения
+[Claudesk](https://github.com/ump45nose/Claudesk) и мобильный клиент
+[TwiCC](https://pypi.org/project/twicc/1.9.0/) — с рисками ToS/хрупкости и/или отдельным origin.
+Владелец выбрал «пока не делать».
+
 ## Откат
 
 - Caddy: `deploy/rollback.sh --tag $TAG` (restore + validate + restart), DSH-проверки.

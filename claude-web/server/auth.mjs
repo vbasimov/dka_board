@@ -5,8 +5,8 @@
  *   1. remoteAddress — loopback
  *   2. X-Claude-Edge — timingSafeEqual с EDGE_SECRET (prod), иначе 403
  *   3. X-Auth-User === ALLOWED_USER_HASH (prod; dev — DEV_USER_HASH без заголовков)
- *   4. Host === публичный authority
- *   5. Origin, если присутствует, === PUBLIC_ORIGIN (и для GET)
+ *   4. Host — входит в config.allowedHosts (PUBLIC_ORIGIN + EXTRA_ORIGINS)
+ *   5. Origin, если присутствует, — входит в config.allowedOrigins (и для GET)
  *   6. Sec-Fetch-Site: cross-site -> 403
  *   7. unsafe-метод: Origin обязателен, Content-Type: application/json
  *

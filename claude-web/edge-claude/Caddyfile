@@ -1,0 +1,236 @@
+# ============================================================================
+# claude-edge — отдельный Caddy-инстанс для ВТОРОГО публичного origin Claude.
+#
+# Назначение: DSH-PWA с scope `/` перехватывает ссылки на
+# https://vps-4692.tailfbc4b2.ts.net:10000/claude/ и не даёт установить Claude
+# отдельным PWA. Второй порт Tailscale Funnel :8443 -> этот инстанс на
+# 127.0.0.1:8444 даёт Claude отдельный origin:
+#     https://vps-4692.tailfbc4b2.ts.net:8443
+# Хост тот же, порт другой => отдельный PWA-origin; cookie гейтвея
+# __Host-dsh_session host-bound (без порта) и шарится между портами: вход один.
+#
+# Инстанс НЕЗАВИСИМ от Caddy auth-гейтвея (:8081, /etc/dsh-gateway-caddy):
+# деплой гейтвея не трогает этот конфиг и не роняет второй origin.
+#
+# Публичный вход открывает Tailscale Funnel (см. README.md):
+#   tailscale funnel --bg --yes --https=8443 http://127.0.0.1:8444
+#
+# Плейсхолдер <EDGE_SECRET> (не секрет) подставляет install.sh из
+# /etc/claude-web/env (EDGE_SECRET, ровно 64 hex, 0600 root:root).
+# Реальный секрет в git/чтение/логи не попадает.
+#
+# ВАЖНО: файл ставится как /etc/claude-edge/Caddyfile (0640 root:caddy) и
+# подменяется ТОЛЬКО install.sh (атомарно, после caddy validate). Руками живой
+# файл не править. Откат — rollback.sh (конфиг/лог сохраняются).
+# ============================================================================
+
+{
+	# Нет admin-API: конфиг меняется только через install.sh + restart.
+	# Заодно не конфликтуем с admin-портом 2019 инстанса auth-гейтвея.
+	admin off
+}
+
+# Один сайт, catch-all по Host: Funnel присылает Host с портом
+# (vps-4692.tailfbc4b2.ts.net:8443), поэтому host-матчер тут не годится.
+# Слушаем ТОЛЬКО loopback: снаружи виден только через Funnel.
+http://:8444 {
+	bind 127.0.0.1
+
+	# ── access log ──────────────────────────────────────────────────────────
+	# JSON; вычищаем всё, что может содержать секреты/сессию/PII:
+	#   • request Cookie / Authorization — сессия гейтвея и клиентские креды;
+	#   • request X-Claude-Edge — внутренний секрет Caddy<->app;
+	#   • response Set-Cookie — сессионная cookie гейтвея;
+	#   • query string — параметры входа/Telegram initData/next и т.п.
+	log {
+		output file /var/log/claude-edge/access.log {
+			mode 0640
+			roll_size 10MiB
+			roll_keep 5
+			roll_keep_for 720h
+		}
+		level INFO
+		format filter {
+			request>headers>Cookie delete
+			request>headers>Authorization delete
+			request>headers>X-Claude-Edge delete
+			resp_headers>Set-Cookie delete
+			request>uri regexp "[?].*$" ""
+			wrap json
+		}
+	}
+
+	# ── базовые security-заголовки (на все ответы) ──────────────────────────
+	# HSTS БЕЗ includeSubDomains: домен общий с DSH/другими сервисами Tailscale.
+	# X-Frame-Options/Permissions-Policy здесь НЕ ставим: они могут сломать
+	# страницу входа /tg в Telegram Web (web_app открывается iframe'ом), поэтому
+	# они scoped на /claude/* ниже, а /tg,/auth/* отдают свои заголовки сами.
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	# ── CSP и frame/permissions для /claude/* ───────────────────────────────
+	# CSP — дословно как у основного фрагмента (deploy/Caddyfile.fragment).
+	# Ставится ПОСЛЕ глобального header-блока: в Caddy последний setter
+	# заголовка выигрывает, а глобальный header не задаёт Content-Security-Policy
+	# (проверено на Caddy 2.11.9 в auth-гейтвее: блок ДО глобального header
+	# перетирался). Приёмка — /claude/ отдаёт default-src 'self' и на 401.
+	header /claude/* {
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
+		X-Frame-Options "DENY"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+	}
+
+	# Порядок маршрутов фиксирован route { } (внутри вложенных блоков Caddy
+	# иначе сортирует директивы по умолчанию): guard -> install -> /claude
+	# -> /claude/* -> вход гейтвея -> redirect catch-all.
+	route {
+		# ── 0. Клиентские trust-заголовки не пропускаем ────────────────────
+		# X-Claude-Edge ставит только reverse_proxy ниже (header_up
+		# перезаписывает клиентское значение в любом случае), X-Auth-User —
+		# только forward_auth через copy_headers. Остальные вырезаем, чтобы
+		# приложение не могло принять спуф за доверенный.
+		request_header -X-Auth-User
+		request_header -X-Forwarded-User
+		request_header -X-Real-IP
+		request_header -X-Claude-Edge
+		request_header -X-Forwarded-For
+
+		# ── 1. Origin-guard ────────────────────────────────────────────────
+		# Действует для /claude/* (включая WS) и для входа (/tg, /auth/*):
+		# вход может начаться на :10000, а API-запросы идти с :8443 — cookie
+		# общая, поэтому разрешены ОБА origin. Непустой Origin вне списка
+		# (включая `null`) -> 403 до install-ветки и forward_auth.
+		# Запросы без Origin (curl/навигация) пропускаем: guard только по
+		# непустому Origin.
+		@claude_bad_origin {
+			path /claude/* /tg /tg/* /auth/*
+			expression `{http.request.header.Origin} != '' && {http.request.header.Origin} != 'https://vps-4692.tailfbc4b2.ts.net:8443' && {http.request.header.Origin} != 'https://vps-4692.tailfbc4b2.ts.net:10000'`
+		}
+		respond @claude_bad_origin "forbidden" 403
+
+		# ── 2. Публичные install-ассеты (manifest + 4 иконки) ──────────────
+		# Ровно 5 точных путей; отдаёт Caddy из /srv/claude-web/public (не
+		# приложение): аноним не попадает в app и не зависит от его auth-кода.
+		# Только GET/HEAD, POST/PUT/... -> 405. Content-Type/Cache-Control
+		# ставятся ТОЛЬКО после проверки метода (route фиксирует порядок),
+		# поэтому 405/ошибки их не получают.
+		@claude_install path /claude/manifest.webmanifest \
+		                  /claude/icons/icon-192.png \
+		                  /claude/icons/icon-512.png \
+		                  /claude/icons/icon-maskable-512.png \
+		                  /claude/icons/apple-touch-icon-180.png
+		handle @claude_install {
+			route {
+				@not_get not method GET HEAD
+				respond @not_get "method not allowed" 405
+
+				@claude_manifest path /claude/manifest.webmanifest
+				header @claude_manifest >Cache-Control "no-cache"
+				header @claude_manifest >Content-Type "application/manifest+json"
+
+				@claude_icons path /claude/icons/*
+				header @claude_icons >Cache-Control "public, max-age=86400"
+				header @claude_icons >Content-Type "image/png"
+
+				root * /srv/claude-web/public
+				file_server
+			}
+		}
+
+		# ── 3. /claude -> /claude/ ─────────────────────────────────────────
+		# Относительные URL PWA не должны улетать в корень DSH.
+		handle /claude {
+			redir * /claude/ 308
+		}
+
+		# ── 4. Приватная часть /claude/* ───────────────────────────────────
+		# Та же сессия гейтвея, без cookie гейтвея в приложение.
+		# route { } фиксирует порядок: forward_auth -> (только после успеха)
+		# ветка assets -> остальное. 401 от forward_auth терминален и НЕ
+		# получает immutable (SEC-11): immutable ставится через handle_response
+		# status 2xx внутри reverse_proxy, т.е. только на ответ app 2xx.
+		handle /claude/* {
+			route {
+				forward_auth 127.0.0.1:9090 {
+					uri /verify
+					copy_headers X-Auth-User
+				}
+
+				# 4a) /claude/assets/* — hashed-бандлы: immutable ТОЛЬКО на 2xx.
+				@claude_assets path /claude/assets/*
+				handle @claude_assets {
+					reverse_proxy 127.0.0.1:3090 {
+						flush_interval -1
+						header_up X-Forwarded-Proto https
+						header_up -Cookie
+						header_up X-Claude-Edge __EDGE_SECRET__
+						header_up -Authorization
+						header_up -X-Forwarded-User
+						header_up -X-Real-IP
+						@claude_asset_ok status 2xx
+						handle_response @claude_asset_ok {
+							header >Cache-Control "public, max-age=86400, immutable"
+							copy_response
+						}
+					}
+				}
+
+				# 4b) остальное под /claude/ (HTML/API/SSE/sw.js): no-store
+				# ставит приложение; поток не буферизуем (flush_interval -1).
+				handle {
+					reverse_proxy 127.0.0.1:3090 {
+						flush_interval -1
+						header_up X-Forwarded-Proto https
+						header_up -Cookie
+						header_up X-Claude-Edge __EDGE_SECRET__
+						header_up -Authorization
+						header_up -X-Forwarded-User
+						header_up -X-Real-IP
+						header_up -X-Forwarded-Host
+					}
+				}
+			}
+		}
+
+		# ── 5. Вход и статус гейтвея прямо с :8443 ─────────────────────────
+		# /tg — страница входа, /auth/* — telegram/TOTP/password/status,
+		# /healthz — health гейтвея. Cookie гейтвея здесь проходит как есть
+		# (и запрос, и ответ): она host-bound и общая для :8443/:10000,
+		# поэтому вход, начатый на любом порту, действует на обоих.
+		handle /tg {
+			reverse_proxy 127.0.0.1:9090 {
+				flush_interval -1
+				header_up X-Forwarded-Proto https
+			}
+		}
+		handle /tg/* {
+			reverse_proxy 127.0.0.1:9090 {
+				flush_interval -1
+				header_up X-Forwarded-Proto https
+			}
+		}
+		handle /auth/* {
+			reverse_proxy 127.0.0.1:9090 {
+				flush_interval -1
+				header_up X-Forwarded-Proto https
+			}
+		}
+		handle /healthz {
+			reverse_proxy 127.0.0.1:9090 {
+				header_up X-Forwarded-Proto https
+			}
+		}
+
+		# ── 6. Всё остальное — в DSH на :10000 ─────────────────────────────
+		# Второй origin ничего, кроме Claude и входа, не обслуживает.
+		# Абсолютный redirect на канонический origin DSH; query не переносим,
+		# чтобы не тащить чужие параметры на другой origin.
+		handle {
+			redir * https://vps-4692.tailfbc4b2.ts.net:10000/ 302
+		}
+	}
+}

@@ -105,7 +105,9 @@ export function App() {
   }, []);
 
   const onApplyUpdate = useCallback(() => {
-    if (!applyServiceWorkerUpdate()) setUpdateReady(false);
+    // Hide the banner immediately; the reload (forced on user action) follows.
+    setUpdateReady(false);
+    applyServiceWorkerUpdate();
   }, []);
 
   return (

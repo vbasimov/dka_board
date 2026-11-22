@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { describeError, isUnauthorized, type ApiClient } from '../api';
+import { canInstall, initInstallPrompt, promptInstall } from '../install';
 import type { SessionInfo, SessionStatus, Workspace } from '../types';
 
 const STATUS_LABELS: Record<SessionStatus, string> = {
@@ -45,6 +46,7 @@ export function SessionListScreen({ api, onOpen, onNotify }: SessionListScreenPr
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [installable, setInstallable] = useState(() => canInstall());
   const [selectedCwd, setSelectedCwd] = useState('');
   const [creating, setCreating] = useState(false);
 
@@ -67,6 +69,12 @@ export function SessionListScreen({ api, onOpen, onNotify }: SessionListScreenPr
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => initInstallPrompt(() => setInstallable(canInstall())), []);
+
+  const install = () => {
+    void promptInstall().finally(() => setInstallable(canInstall()));
+  };
 
   const createSession = async () => {
     if (creating) return;
@@ -132,6 +140,11 @@ export function SessionListScreen({ api, onOpen, onNotify }: SessionListScreenPr
           <button type="button" class="btn ghost small" onClick={() => void load()} disabled={loading}>
             Обновить
           </button>
+          {installable ? (
+            <button type="button" class="btn ghost small" onClick={install} title="Установить Claude как отдельное приложение">
+              Установить
+            </button>
+          ) : null}
           <button
             type="button"
             class="btn primary"

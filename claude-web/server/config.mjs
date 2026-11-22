@@ -4,6 +4,10 @@
  * loadConfig(env) — чистая функция (не трогает fs/сеть), бросает ConfigError
  * с коротким machine-кодом. Секреты (EDGE_SECRET, ALLOWED_USER_HASH,
  * CLAUDE_CODE_OAUTH_TOKEN) НИКОГДА не попадают в text ошибки, логи или ответы.
+ *
+ * Публичных origin'ов может быть несколько: PUBLIC_ORIGIN плюс необязательный
+ * EXTRA_ORIGINS (только prod, список bare-origin'ов через запятую). Их host'ы
+ * и origin'ы складываются в allowedHosts / allowedOrigins (CONTRACT §6).
  */
 import { URL } from 'node:url';
 
@@ -49,6 +53,61 @@ function intEnv(env, name, fallback) {
   return n;
 }
 
+/**
+ * Разбор EXTRA_ORIGINS — дополнительных публичных origin'ов (CONTRACT §2):
+ * список bare-origin'ов `https://host[:port]` через запятую.
+ *
+ * Каждый элемент проверяется fail-closed; в тексте ошибки — только номер
+ * элемента и требование, значений env нет. Host и origin нормализуются так же,
+ * как их сериализует браузер: host в lower-case, дефолтный порт 443 отброшен.
+ * Дубли (в том числе совпадающие с PUBLIC_ORIGIN) отбрасываются.
+ *
+ * @param {string} value сырое значение env (уже trim'нутое, может быть '')
+ * @returns {{host:string, origin:string}[]}
+ */
+function parseExtraOrigins(value) {
+  if (!value) return [];
+  const out = [];
+  const seen = new Set();
+  value.split(',').forEach((part, index) => {
+    const n = index + 1;
+    const entry = part.trim();
+    if (!entry) throw new ConfigError('invalid_env', `EXTRA_ORIGINS entry ${n} is empty`);
+    let url;
+    try {
+      url = new URL(entry);
+    } catch {
+      throw new ConfigError('invalid_env', `EXTRA_ORIGINS entry ${n} is not a valid URL`);
+    }
+    if (url.username || url.password) {
+      throw new ConfigError('invalid_env', `EXTRA_ORIGINS entry ${n} must not contain credentials`);
+    }
+    if (url.protocol !== 'https:') {
+      throw new ConfigError('insecure_env', `EXTRA_ORIGINS entry ${n} must be https`);
+    }
+    if (url.pathname !== '/' || url.search || url.hash) {
+      throw new ConfigError('invalid_env', `EXTRA_ORIGINS entry ${n} must be a bare origin`);
+    }
+    if (url.port !== '') {
+      const port = Number(url.port);
+      if (!Number.isInteger(port) || port < 1 || port > 65535) {
+        throw new ConfigError('invalid_env', `EXTRA_ORIGINS entry ${n} has an out-of-range port`);
+      }
+    }
+    // URL-парсер мог «спасти» кривой ввод (https:///host, https://host:443/,
+    // https://host:8443/.): требуем, чтобы элемент буквально совпал с
+    // каноническим origin (допускается только необязательный хвостовой '/').
+    const withoutSlash = entry.endsWith('/') ? entry.slice(0, -1) : entry;
+    if (withoutSlash.toLowerCase() !== url.origin) {
+      throw new ConfigError('invalid_env', `EXTRA_ORIGINS entry ${n} must be a bare origin like https://host[:port]`);
+    }
+    if (seen.has(url.origin)) return;
+    seen.add(url.origin);
+    out.push({ host: url.host, origin: url.origin });
+  });
+  return out;
+}
+
 function validateBasePath(v) {
   if (!v.startsWith('/') || !v.endsWith('/')) {
     throw new ConfigError('invalid_env', 'BASE_PATH must start and end with "/"');
@@ -90,6 +149,7 @@ export function loadConfig(env = process.env) {
   let publicOrigin;
   let allowedHosts;
   let allowedOrigins;
+  let extraOrigins;
   if (isProd) {
     const origin = required(env, 'PUBLIC_ORIGIN');
     let url;
@@ -105,11 +165,23 @@ export function loadConfig(env = process.env) {
     publicOrigin = url.origin;
     allowedHosts = [url.host];
     allowedOrigins = [url.origin];
+    // Второй публичный origin (например Tailscale Funnel :8443 → отдельный
+    // Caddy → то же приложение). Пусто по умолчанию: поведение не меняется.
+    const extra = parseExtraOrigins(raw(env, 'EXTRA_ORIGINS')).filter((e) => e.origin !== url.origin);
+    extraOrigins = extra.map((e) => e.origin);
+    for (const e of extra) {
+      if (!allowedHosts.includes(e.host)) allowedHosts.push(e.host);
+      if (!allowedOrigins.includes(e.origin)) allowedOrigins.push(e.origin);
+    }
   } else {
     // AUTH_MODE=dev — только loopback:3091, без Caddy/сессионных заголовков.
     if (port !== 3091) {
       throw new ConfigError('insecure_env', 'AUTH_MODE=dev is only allowed on 127.0.0.1:3091');
     }
+    if (raw(env, 'EXTRA_ORIGINS')) {
+      throw new ConfigError('insecure_env', 'EXTRA_ORIGINS is only allowed in AUTH_MODE=prod');
+    }
+    extraOrigins = [];
     publicOrigin = raw(env, 'PUBLIC_ORIGIN') || 'http://127.0.0.1:3091';
     const devUrl = new URL(publicOrigin);
     if (devUrl.protocol !== 'http:') throw new ConfigError('invalid_env', 'dev PUBLIC_ORIGIN must be http');
@@ -184,6 +256,7 @@ export function loadConfig(env = process.env) {
     host,
     port,
     publicOrigin,
+    extraOrigins: Object.freeze(extraOrigins),
     allowedHosts: Object.freeze(allowedHosts),
     allowedOrigins: Object.freeze(allowedOrigins),
     basePath,

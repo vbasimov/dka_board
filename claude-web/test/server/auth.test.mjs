@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { checkRequest } from '../../server/auth.mjs';
 import {
   EDGE,
+  EXTRA_HOST,
+  EXTRA_ORIGIN,
   fakeReq,
   makeConfig,
   PUBLIC_ORIGIN,
@@ -13,6 +15,9 @@ import {
 
 function prodConfig() {
   return makeConfig(tempRoot('auth-prod-'));
+}
+function prodExtraConfig() {
+  return makeConfig(tempRoot('auth-prod-extra-'), { extra: { EXTRA_ORIGINS: EXTRA_ORIGIN } });
 }
 function devConfig() {
   return makeConfig(tempRoot('auth-dev-'), { authMode: 'dev' });
@@ -113,6 +118,97 @@ test('unsafe methods: Origin required, JSON content-type required', () => {
     cfg,
   );
   assert.equal(ok.ok, true);
+});
+
+test('EXTRA_ORIGINS: Host нового origin проходит, старый тоже, чужой -> 403', () => {
+  const cfg = prodExtraConfig();
+  const newHost = checkRequest(fakeReq({ headers: prodHeaders({ host: EXTRA_HOST }) }), cfg);
+  assert.equal(newHost.ok, true);
+  assert.equal(newHost.userHash, USER_HASH);
+
+  const oldHost = checkRequest(fakeReq({ headers: prodHeaders() }), cfg);
+  assert.equal(oldHost.ok, true);
+
+  const badHosts = [
+    'vps-4692.tailfbc4b2.ts.net', // без порта: разрешены ровно authorities из env
+    'evil.example:8443',
+    'vps-4692.tailfbc4b2.ts.net:9443',
+    'vps-4692.tailfbc4b2.ts.net:8443.evil',
+  ];
+  for (const host of badHosts) {
+    const res = checkRequest(fakeReq({ headers: prodHeaders({ host }) }), cfg);
+    assert.equal(res.ok, false, `host=${host}`);
+    assert.equal(res.status, 403);
+  }
+  // регистр Host не важен (как и раньше: auth приводит Host к lower-case)
+  assert.equal(checkRequest(fakeReq({ headers: prodHeaders({ host: EXTRA_HOST.toUpperCase() }) }), cfg).ok, true);
+});
+
+test('EXTRA_ORIGINS: без env Host :8443 -> 403 (дефолт не меняется)', () => {
+  const cfg = prodConfig();
+  const res = checkRequest(fakeReq({ headers: prodHeaders({ host: EXTRA_HOST }) }), cfg);
+  assert.equal(res.ok, false);
+  assert.equal(res.status, 403);
+  assert.equal(checkRequest(fakeReq({ headers: prodHeaders() }), cfg).ok, true);
+});
+
+test('EXTRA_ORIGINS: Origin нового origin проходит для safe и unsafe, чужой -> 403', () => {
+  const cfg = prodExtraConfig();
+
+  // GET: Origin нового origin допустим
+  const get = checkRequest(fakeReq({ headers: prodHeaders({ host: EXTRA_HOST, origin: EXTRA_ORIGIN }) }), cfg);
+  assert.equal(get.ok, true);
+
+  // GET со старым Origin тоже допустим (списки host/origin независимы, как и раньше)
+  assert.equal(checkRequest(fakeReq({ headers: prodHeaders({ origin: PUBLIC_ORIGIN }) }), cfg).ok, true);
+
+  // POST: Origin нового origin + JSON — пропускается
+  const post = checkRequest(
+    fakeReq({
+      method: 'POST',
+      headers: prodHeaders({
+        host: EXTRA_HOST,
+        origin: EXTRA_ORIGIN,
+        'content-type': 'application/json; charset=utf-8',
+      }),
+    }),
+    cfg,
+  );
+  assert.equal(post.ok, true);
+
+  // чужой Origin -> 403 и для GET, и для POST (до Content-Type)
+  for (const method of ['GET', 'POST']) {
+    const res = checkRequest(
+      fakeReq({
+        method,
+        headers: prodHeaders({
+          host: EXTRA_HOST,
+          origin: 'https://evil.example:8443',
+          'content-type': 'application/json',
+        }),
+      }),
+      cfg,
+    );
+    assert.equal(res.ok, false, `method=${method}`);
+    assert.equal(res.status, 403);
+  }
+
+  // unsafe-метод без Origin — по-прежнему 403
+  const noOrigin = checkRequest(
+    fakeReq({ method: 'POST', headers: prodHeaders({ host: EXTRA_HOST, 'content-type': 'application/json' }) }),
+    cfg,
+  );
+  assert.equal(noOrigin.ok, false);
+  assert.equal(noOrigin.status, 403);
+
+  // Origin чужого порта того же хоста при новом Host -> 403 (в списке только
+  // PUBLIC_ORIGIN и EXTRA_ORIGIN)
+  const wrongPort = checkRequest(
+    fakeReq({ method: 'POST', headers: prodHeaders({ host: EXTRA_HOST, origin: 'https://vps-4692.tailfbc4b2.ts.net:9443', 'content-type': 'application/json' }) }),
+    cfg,
+  );
+  assert.equal(wrongPort.ok, false);
+  assert.equal(wrongPort.status, 403);
 });
 
 test('dev mode: no edge/user headers needed, loopback hosts only', () => {
