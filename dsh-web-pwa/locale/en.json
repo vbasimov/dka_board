@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Installable web app",
+    "description": "Replaces /manifest.webmanifest with a stricter one and serves a root-scope /sw.js service worker, so the Web GUI installs as a standalone app with its own icon and window. The manifest link carries credentials, so a proxy that authenticates with a cookie admits it. A failed navigation shows one page instead of the proxy's JSON or the browser error: the Host is unreachable, or the session ended with a link to the sign-in page. Only build assets, the manifest, and the icons are cached; every session still needs the Host. Disabling the plugin stops /sw.js and the manifest override, and the shipped manifest serves again."
+  }
+}

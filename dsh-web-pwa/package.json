@@ -1,0 +1,26 @@
+{
+  "name": "@local/dsh-web-pwa",
+  "version": "1.0.0",
+  "description": "Installable-app layer for the DSH Web GUI: web app manifest, offline service worker, and install metadata.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "sw.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+# @local/dsh-web-pwa: the installable-app layer over the Web shell.
+# The row is active by default; disable it in Plugins to stop serving the
+# manifest and the service worker.
+- insert:
+    - id: web-pwa
+      name: '@local/dsh-web-pwa'
