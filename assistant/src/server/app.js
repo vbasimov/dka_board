@@ -4,6 +4,7 @@ import { extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { compareTasks, dueDate, rank, reasonOf, todayKey } from '../domain/priority.js'
 import { fetchMeta } from '../cafo/freshness.js'
+import { buildDraft } from '../drafts/build.js'
 
 function send(response, status, body) {
   const payload = JSON.stringify(body)
@@ -130,6 +131,25 @@ export function createApp({ store, facts, cafo, cafoBaseUrl }) {
       try {
         const results = await cafo.syncAll(pageId => fetchMeta(pageId, { baseUrl: cafoBaseUrl }))
         send(response, 200, { results })
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
+      return
+    }
+    if (url.pathname === '/api/drafts/build' && isWrite) {
+      try {
+        const body = await readJson(request)
+        const sourceStatus = {}
+        for (const meta of cafo ? cafo.list() : []) {
+          sourceStatus[`page_id=${meta.pageId}; version=${meta.version}`] = meta.status
+        }
+        const draft = buildDraft({
+          subject: body.subject,
+          request: body.request,
+          facts: facts ? facts.all() : [],
+          sourceStatus
+        })
+        send(response, 200, { draft })
       } catch (error) {
         send(response, 400, { error: error.message })
       }
