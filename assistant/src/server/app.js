@@ -1,10 +1,13 @@
 import { createServer as httpCreateServer } from 'node:http'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { compareTasks, dueDate, rank, reasonOf, todayKey } from '../domain/priority.js'
 import { fetchMeta } from '../cafo/freshness.js'
 import { buildDraft } from '../drafts/build.js'
+import { parseDrawio } from '../parse/drawio.js'
+import { compareIntegrations } from '../diagrams/compare.js'
+import { buildReview } from '../review/build.js'
 
 function send(response, status, body) {
   const payload = JSON.stringify(body)
@@ -62,7 +65,7 @@ function readJson(request, limit = 1_000_000) {
   })
 }
 
-export function createApp({ store, facts, cafo, cafoBaseUrl }) {
+export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir }) {
   return async (request, response) => {
     const url = new URL(request.url, 'http://127.0.0.1')
     const isWrite = request.method === 'POST'
@@ -155,6 +158,41 @@ export function createApp({ store, facts, cafo, cafoBaseUrl }) {
       }
       return
     }
+    if (url.pathname === '/api/diagrams/compare' && isWrite) {
+      try {
+        const body = await readJson(request)
+        const xml = String(body.xml ?? '')
+        if (!xml.includes('<mxfile')) throw new Error('ожидается файл draw.io (mxfile)')
+        const [diagram] = parseDrawio(xml).diagrams
+        if (!diagram) throw new Error('в файле не найдено ни одной схемы')
+        send(response, 200, { diagram: diagram.name, result: compareIntegrations({ diagram, cafo: body.cafo ?? [] }) })
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
+      return
+    }
+    if (url.pathname === '/api/review/build' && isWrite) {
+      try {
+        const body = await readJson(request)
+        const review = buildReview({
+          tasks: store.all(),
+          facts: facts ? facts.all() : [],
+          cafo: cafo ? cafo.list() : [],
+          diagramDiffs: body.diagramDiffs ?? []
+        })
+        let savedTo = null
+        if (dataDir) {
+          const reportsDir = join(dataDir, 'отчёты')
+          mkdirSync(reportsDir, { recursive: true })
+          savedTo = join(reportsDir, `ревью-${new Date().toISOString().slice(0, 10)}.md`)
+          writeFileSync(savedTo, review.markdown, 'utf8')
+        }
+        send(response, 200, { ...review, savedTo })
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
+      return
+    }
     if (url.pathname === '/api/health') {
       send(response, 200, { ok: true, tasks: store.count() })
       return
@@ -163,8 +201,8 @@ export function createApp({ store, facts, cafo, cafoBaseUrl }) {
   }
 }
 
-export function createServer({ store, facts, cafo, cafoBaseUrl, host = '127.0.0.1' }) {
-  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl }))
+export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, host = '127.0.0.1' }) {
+  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir }))
   server.host = host
   return server
 }

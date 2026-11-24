@@ -11,7 +11,7 @@ const cafoBaseUrl = process.env.AA_CONFLUENCE ?? ''
 const store = createStore(dataDir)
 const facts = createFactStore(dataDir)
 const cafo = createCafoCache(dataDir)
-const server = createServer({ store, facts, cafo, cafoBaseUrl })
+const server = createServer({ store, facts, cafo, cafoBaseUrl, dataDir })
 
 server.listen(port, '127.0.0.1', () => {
   console.log(`Ассистент архитектора: http://127.0.0.1:${port}`)
