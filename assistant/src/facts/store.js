@@ -1,6 +1,6 @@
 import { mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { canBeUsedInAnswer, createFact, FACT_STATUS, planSupersession } from './model.js'
+import { canBeUsedInAnswer, createFact, FACT_STATUS, planSupersession, quizCandidates } from './model.js'
 
 const FACTS_DIR = 'факты'
 
@@ -56,6 +56,22 @@ export function createFactStore(dir) {
         confirmedBy: by ?? 'архитектор',
         confirmedAt: new Date().toISOString()
       })
+    },
+    markUnreliable(id, by) {
+      return update(id, {
+        status: FACT_STATUS.UNRELIABLE,
+        confirmedBy: by ?? 'архитектор',
+        confirmedAt: new Date().toISOString()
+      })
+    },
+    skip(id) {
+      return update(id, { skippedAt: new Date().toISOString() })
+    },
+    quiz(now = new Date()) {
+      return quizCandidates([...byId.values()], now)
+    },
+    unreliable() {
+      return [...byId.values()].filter(fact => fact.status === FACT_STATUS.UNRELIABLE)
     },
     reject(id, by) {
       return update(id, {

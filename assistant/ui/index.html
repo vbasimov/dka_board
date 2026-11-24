@@ -19,6 +19,7 @@
       <button data-p="cafo">КАФО</button>
       <button data-p="diagrams">Схемы</button>
       <button data-p="facts">Факты и решения</button>
+      <button data-p="quiz">Проверка фактов</button>
       <button data-p="review">Ревью недели</button>
       <button data-p="settings">Настройки</button>
     </nav>
@@ -71,6 +72,13 @@
       <section class="panel" id="p-facts" hidden>
         <h2>Факты и решения</h2>
         <div id="facts"></div>
+      </section>
+
+      <section class="panel" id="p-quiz" hidden>
+        <h2>Проверка фактов</h2>
+        <p class="muted">Ежедневная проверка: подтвердить, признать недостоверным или пропустить.</p>
+        <p class="muted" id="quiz-hint"></p>
+        <div id="quiz"></div>
       </section>
 
       <section class="panel" id="p-review" hidden>

@@ -107,6 +107,26 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir }) {
       send(response, 200, { items: mode === 'answer' ? facts.answerable() : facts.all() })
       return
     }
+    if (url.pathname === '/api/tasks' && isWrite) {
+      try {
+        const body = await readJson(request)
+        const result = store.add(body)
+        send(response, 200, result)
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
+      return
+    }
+    if (url.pathname.startsWith('/api/tasks/') && url.pathname.endsWith('/park') && isWrite) {
+      try {
+        const id = url.pathname.split('/')[3]
+        const body = await readJson(request)
+        send(response, 200, { task: store.park(id, body.nextStep) })
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
+      return
+    }
     if (url.pathname.startsWith('/api/facts/') && url.pathname.endsWith('/confirm') && isWrite) {
       if (!facts) {
         send(response, 404, { error: 'реестр фактов не подключён' })
@@ -117,6 +137,29 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir }) {
         const body = await readJson(request)
         const fact = facts.confirm(id, body.by)
         send(response, 200, { fact })
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
+      return
+    }
+    if (url.pathname === '/api/quiz') {
+      send(response, 200, { items: facts ? facts.quiz().slice(0, 10) : [] })
+      return
+    }
+    if (url.pathname === '/api/quiz/answer' && isWrite) {
+      if (!facts) {
+        send(response, 404, { error: 'реестр фактов не подключён' })
+        return
+      }
+      try {
+        const body = await readJson(request)
+        const verdict = String(body.verdict ?? '')
+        const id = String(body.id ?? '')
+        if (!id) throw new Error('не передан идентификатор факта')
+        if (verdict === 'confirm') send(response, 200, { fact: facts.confirm(id, body.by) })
+        else if (verdict === 'unreliable') send(response, 200, { fact: facts.markUnreliable(id, body.by) })
+        else if (verdict === 'skip') send(response, 200, { fact: facts.skip(id) })
+        else throw new Error('вердикт должен быть: confirm, unreliable или skip')
       } catch (error) {
         send(response, 400, { error: error.message })
       }
@@ -209,16 +252,19 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir }) {
         .map(task => ({ ...task, rank: rank(task, now), reason: reasonOf(task, now) }))
         .sort((a, b) => compareTasks(a, b, now))
       const pages = cafo ? cafo.list() : []
+      const resume = store.parked().map(task => ({ ...task, rank: rank(task, now), reason: reasonOf(task, now) }))
       send(response, 200, {
         cafo: pages,
         unanswered,
         burning,
+        resume,
         counts: {
           cafo: pages.length,
           cafoStale: pages.filter(meta => meta.status === 'устарело').length,
           cafoUnchecked: pages.filter(meta => meta.status === 'не_сверено').length,
           unanswered: unanswered.length,
-          burning: burning.length
+          burning: burning.length,
+          resume: resume.length
         }
       })
       return

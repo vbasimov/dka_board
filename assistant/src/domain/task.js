@@ -23,6 +23,8 @@ export function makeTask(input = {}) {
     fromManager: input.fromManager === true,
     escalation: input.escalation === true,
     answered: input.answered === true,
+    nextStep: input.nextStep ?? null,
+    parkedAt: input.parkedAt ?? null,
     status: input.status ?? 'новая',
     createdAt: input.createdAt ?? new Date().toISOString()
   }

@@ -1,5 +1,6 @@
 import { renderToday } from './today.js'
 import { renderOnepager } from './onepager.js'
+import { renderQuiz } from './quiz.js'
 import { renderTasks, renderCafo, renderFacts, renderReview, renderComparison } from './lists.js'
 import { esc } from './today.js'
 
@@ -59,6 +60,14 @@ async function loadFacts() {
   }
 }
 
+async function loadQuiz() {
+  try {
+    $('#quiz').innerHTML = renderQuiz((await getJson('/api/quiz')).items)
+  } catch (error) {
+    fail('#quiz', error)
+  }
+}
+
 async function loadConfig() {
   try {
     const config = await getJson('/api/config')
@@ -82,6 +91,29 @@ function show(panel) {
 
 document.querySelectorAll('#nav button').forEach(button => {
   button.addEventListener('click', () => show(button.dataset.p))
+})
+
+$('#quiz')?.addEventListener('click', async event => {
+  const button = event.target.closest('button[data-verdict]')
+  if (!button) return
+  const card = button.closest('.quiz')
+  const id = card?.dataset.id
+  if (!id) return
+  button.disabled = true
+  try {
+    await getJson('/api/quiz/answer', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id, verdict: button.dataset.verdict })
+    })
+    $('#quiz-hint').textContent = 'Ответ записан'
+    await loadQuiz()
+    await loadFacts()
+    await loadSummary()
+  } catch (error) {
+    $('#quiz-hint').textContent = `Не удалось записать ответ: ${error.message}`
+    button.disabled = false
+  }
 })
 
 $('#sync-cafo')?.addEventListener('click', async () => {
@@ -134,6 +166,7 @@ $('#compare')?.addEventListener('click', async () => {
 })
 
 loadSummary()
+loadQuiz()
 loadToday()
 loadTasks()
 loadCafo()

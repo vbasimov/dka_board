@@ -34,3 +34,13 @@ test('содержимое блоков экранируется', () => {
   const html = renderOnepager({ burning: [{ title: '<script>alert(1)</script>' }] })
   assert.doesNotMatch(html, /<script>/)
 })
+
+test('блок «Продолжить» показывает незавершённое дело и сохранённый шаг', () => {
+  const html = renderOnepager({ resume: [{ title: 'Согласовать интеграцию', nextStep: 'написать в антифрод' }] })
+  assert.match(html, /Продолжить/)
+  assert.match(html, /написать в антифрод/)
+})
+
+test('без незавершённых дел блок объясняет, что возвращаться не к чему', () => {
+  assert.match(renderOnepager({}), /Незавершённых дел с сохранённым шагом нет/)
+})

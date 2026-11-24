@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs'
 const html = readFileSync(new URL('../../ui/index.html', import.meta.url), 'utf8')
 
 test('страница содержит все разделы из макета', () => {
-  for (const panel of ['summary', 'today', 'tasks', 'cafo', 'diagrams', 'facts', 'review', 'settings']) {
+  for (const panel of ['summary', 'today', 'tasks', 'cafo', 'diagrams', 'facts', 'quiz', 'review', 'settings']) {
     assert.match(html, new RegExp(`id="p-${panel}"`), `нет раздела ${panel}`)
   }
 })

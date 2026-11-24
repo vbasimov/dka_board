@@ -14,6 +14,7 @@ export function renderOnepager(state = {}) {
   const cafo = Array.isArray(state.cafo) ? state.cafo : []
   const unanswered = Array.isArray(state.unanswered) ? state.unanswered : []
   const burning = Array.isArray(state.burning) ? state.burning : []
+  const resume = Array.isArray(state.resume) ? state.resume : []
   const counts = state.counts ?? {}
 
   const cafoBlock = cafo.length
@@ -34,6 +35,12 @@ export function renderOnepager(state = {}) {
         .join('')}</ul>`
     : empty('Горящих сроков на сегодня нет.')
 
+  const resumeBlock = resume.length
+    ? `<ul class="plain">${resume
+        .map(task => `<li><b>${esc(task.title)}</b> — ${esc(task.nextStep)}</li>`)
+        .join('')}</ul>`
+    : empty('Незавершённых дел с сохранённым шагом нет.')
+
   return `
 <section class="onepager">
   <div class="column">
@@ -48,5 +55,9 @@ export function renderOnepager(state = {}) {
     <h3>Горящие сроки сегодня <span class="chip p1">${esc(counts.burning ?? burning.length)}</span></h3>
     ${burningBlock}
   </div>
+</section>
+<section class="column resume">
+  <h3>Продолжить <span class="chip">${esc(counts.resume ?? resume.length)}</span></h3>
+  ${resumeBlock}
 </section>`.trim()
 }

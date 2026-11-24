@@ -6,7 +6,8 @@ export const FACT_STATUS = {
   PROPOSED: 'предложен',
   CONFIRMED: 'подтверждён',
   SUPERSEDED: 'заменён',
-  REJECTED: 'отклонён'
+  REJECTED: 'отклонён',
+  UNRELIABLE: 'недостоверен'
 }
 
 export function createFact(input = {}, options = {}) {
@@ -53,4 +54,17 @@ export function planSupersession(existing, candidate) {
 
 export function canBeUsedInAnswer(fact) {
   return fact.status === FACT_STATUS.CONFIRMED && !fact.supersededBy
+}
+
+export function isUnreliable(fact) {
+  return fact.status === FACT_STATUS.UNRELIABLE
+}
+
+export function quizCandidates(facts, now = new Date()) {
+  const today = new Date(now).toISOString().slice(0, 10)
+  return facts.filter(fact => {
+    if (fact.status !== FACT_STATUS.PROPOSED) return false
+    const skipped = fact.skippedAt ? String(fact.skippedAt).slice(0, 10) : null
+    return skipped !== today
+  })
 }

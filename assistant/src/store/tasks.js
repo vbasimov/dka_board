@@ -19,6 +19,8 @@ function normalize(input) {
     fromManager: input.fromManager === true,
     escalation: input.escalation === true,
     answered: input.answered === true,
+    nextStep: input.nextStep ?? null,
+    parkedAt: input.parkedAt ?? null,
     status: input.status ?? 'новая',
     createdAt: input.createdAt ?? new Date().toISOString()
   }
@@ -62,6 +64,19 @@ export function createStore(dir) {
     },
     byId(id) {
       return byId.get(id)
+    },
+    park(id, nextStep) {
+      const task = byId.get(id)
+      if (!task) throw new Error(`задача ${id} не найдена`)
+      const updated = { ...task, nextStep: nextStep ?? task.nextStep ?? null, parkedAt: new Date().toISOString() }
+      byId.set(id, updated)
+      save(updated)
+      return updated
+    },
+    parked() {
+      return [...byId.values()]
+        .filter(task => task.status !== 'закрыта' && task.nextStep)
+        .sort((a, b) => String(b.parkedAt ?? '').localeCompare(String(a.parkedAt ?? '')))
     },
     setStatus(id, status) {
       const task = byId.get(id)

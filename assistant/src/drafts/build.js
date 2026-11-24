@@ -16,6 +16,7 @@ export function buildDraft(input = {}) {
   const confirmed = facts.filter(fact => fact.status === 'подтверждён' && !fact.supersededBy)
   const proposed = facts.filter(fact => fact.status === 'предложен')
   const superseded = facts.filter(fact => fact.supersededBy)
+  const unreliable = facts.filter(fact => fact.status === 'недостоверен')
 
   const warnings = []
   for (const fact of confirmed) {
@@ -25,6 +26,9 @@ export function buildDraft(input = {}) {
   }
   if (proposed.length > 0) {
     warnings.push(`требуют подтверждения: ${proposed.length} утверждений`)
+  }
+  if (unreliable.length > 0) {
+    warnings.push(`недостоверные факты: ${unreliable.length} — в ответ не включены`)
   }
 
   const lines = ['Коллеги, добрый день.']
@@ -50,6 +54,11 @@ export function buildDraft(input = {}) {
     for (const fact of proposed) lines.push(`— ${fact.claim}`)
   }
 
+  if (unreliable.length > 0) {
+    lines.push('', 'Признано недостоверным (в ответ не включено):')
+    for (const fact of unreliable) lines.push(`— ${fact.claim} (${fact.sourceRef})`)
+  }
+
   if (superseded.length > 0) {
     lines.push('', 'Ранее действовало, но заменено:')
     for (const fact of superseded) lines.push(`— ${fact.claim} (заменён на ${fact.supersededBy})`)
@@ -61,7 +70,12 @@ export function buildDraft(input = {}) {
     text: lines.join('\n'),
     citations: confirmed.map(fact => ({ factId: fact.id, sourceRef: fact.sourceRef })),
     warnings,
-    counts: { confirmed: confirmed.length, proposed: proposed.length, superseded: superseded.length }
+    counts: {
+      confirmed: confirmed.length,
+      proposed: proposed.length,
+      superseded: superseded.length,
+      unreliable: unreliable.length
+    }
   }
 }
 
