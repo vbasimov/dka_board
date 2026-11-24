@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { compareTasks, dueDate, rank, reasonOf, todayKey } from '../domain/priority.js'
+import { fetchMeta } from '../cafo/freshness.js'
 
 function send(response, status, body) {
   const payload = JSON.stringify(body)
@@ -35,10 +36,36 @@ function serveStatic(response, pathname) {
   return true
 }
 
-export function createApp({ store }) {
-  return (request, response) => {
+function readJson(request, limit = 1_000_000) {
+  return new Promise((resolve, reject) => {
+    let size = 0
+    const chunks = []
+    request.on('data', chunk => {
+      size += chunk.length
+      if (size > limit) {
+        reject(new Error('слишком большой запрос'))
+        request.destroy()
+        return
+      }
+      chunks.push(chunk)
+    })
+    request.on('end', () => {
+      if (chunks.length === 0) return resolve({})
+      try {
+        resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')))
+      } catch {
+        reject(new Error('некорректный JSON в запросе'))
+      }
+    })
+    request.on('error', reject)
+  })
+}
+
+export function createApp({ store, facts, cafo, cafoBaseUrl }) {
+  return async (request, response) => {
     const url = new URL(request.url, 'http://127.0.0.1')
-    if (request.method !== 'GET') {
+    const isWrite = request.method === 'POST'
+    if (request.method !== 'GET' && !isWrite) {
       send(response, 405, { error: 'метод не поддерживается' })
       return
     }
@@ -67,6 +94,47 @@ export function createApp({ store }) {
       send(response, 200, { counts, tasks: ranked.slice(0, 3), feed: [] })
       return
     }
+    if (url.pathname === '/api/facts') {
+      if (!facts) {
+        send(response, 200, { items: [] })
+        return
+      }
+      const mode = url.searchParams.get('mode')
+      send(response, 200, { items: mode === 'answer' ? facts.answerable() : facts.all() })
+      return
+    }
+    if (url.pathname.startsWith('/api/facts/') && url.pathname.endsWith('/confirm') && isWrite) {
+      if (!facts) {
+        send(response, 404, { error: 'реестр фактов не подключён' })
+        return
+      }
+      const id = url.pathname.split('/')[3]
+      try {
+        const body = await readJson(request)
+        const fact = facts.confirm(id, body.by)
+        send(response, 200, { fact })
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
+      return
+    }
+    if (url.pathname === '/api/cafo') {
+      send(response, 200, { items: cafo ? cafo.list() : [] })
+      return
+    }
+    if (url.pathname === '/api/cafo/sync' && isWrite) {
+      if (!cafo) {
+        send(response, 404, { error: 'кэш КАФО не подключён' })
+        return
+      }
+      try {
+        const results = await cafo.syncAll(pageId => fetchMeta(pageId, { baseUrl: cafoBaseUrl }))
+        send(response, 200, { results })
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
+      return
+    }
     if (url.pathname === '/api/health') {
       send(response, 200, { ok: true, tasks: store.count() })
       return
@@ -75,8 +143,8 @@ export function createApp({ store }) {
   }
 }
 
-export function createServer({ store, host = '127.0.0.1' }) {
-  const server = httpCreateServer(createApp({ store }))
+export function createServer({ store, facts, cafo, cafoBaseUrl, host = '127.0.0.1' }) {
+  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl }))
   server.host = host
   return server
 }
