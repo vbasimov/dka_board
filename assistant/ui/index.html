@@ -13,7 +13,8 @@
   </header>
   <div class="layout">
     <nav id="nav" aria-label="Разделы">
-      <button data-p="today" aria-current="true">Сегодня</button>
+      <button data-p="summary" aria-current="true">Сводка</button>
+      <button data-p="today">Сегодня</button>
       <button data-p="tasks">Задачи</button>
       <button data-p="cafo">КАФО</button>
       <button data-p="diagrams">Схемы</button>
@@ -22,6 +23,11 @@
       <button data-p="settings">Настройки</button>
     </nav>
     <main>
+      <section class="panel" id="p-summary">
+        <h2>Сводка на сегодня</h2>
+        <div id="summary"><p class="muted">Загрузка…</p></div>
+      </section>
+
       <section class="panel" id="p-today">
         <details class="card">
           <summary>Как начать: пять шагов</summary>

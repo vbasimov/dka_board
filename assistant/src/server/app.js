@@ -193,6 +193,36 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir }) {
       }
       return
     }
+    if (url.pathname === '/api/onepager') {
+      const now = new Date()
+      const today = todayKey(now)
+      const open = store.all().filter(task => task.status !== 'закрыта')
+      const burning = open
+        .filter(task => {
+          const due = dueDate(task, now)
+          return Boolean(due) && due <= today
+        })
+        .map(task => ({ ...task, rank: rank(task, now), reason: reasonOf(task, now) }))
+        .sort((a, b) => compareTasks(a, b, now))
+      const unanswered = open
+        .filter(task => task.source === 'письмо' && task.answered !== true)
+        .map(task => ({ ...task, rank: rank(task, now), reason: reasonOf(task, now) }))
+        .sort((a, b) => compareTasks(a, b, now))
+      const pages = cafo ? cafo.list() : []
+      send(response, 200, {
+        cafo: pages,
+        unanswered,
+        burning,
+        counts: {
+          cafo: pages.length,
+          cafoStale: pages.filter(meta => meta.status === 'устарело').length,
+          cafoUnchecked: pages.filter(meta => meta.status === 'не_сверено').length,
+          unanswered: unanswered.length,
+          burning: burning.length
+        }
+      })
+      return
+    }
     if (url.pathname === '/api/config') {
       send(response, 200, {
         'папка данных': dataDir ?? 'не задана',

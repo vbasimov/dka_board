@@ -1,4 +1,5 @@
 import { renderToday } from './today.js'
+import { renderOnepager } from './onepager.js'
 import { renderTasks, renderCafo, renderFacts, renderReview, renderComparison } from './lists.js'
 import { esc } from './today.js'
 
@@ -20,6 +21,14 @@ async function loadToday() {
     $('#today').innerHTML = renderToday(await getJson('/api/state'))
   } catch (error) {
     fail('#today', error)
+  }
+}
+
+async function loadSummary() {
+  try {
+    $('#summary').innerHTML = renderOnepager(await getJson('/api/onepager'))
+  } catch (error) {
+    fail('#summary', error)
   }
 }
 
@@ -124,6 +133,7 @@ $('#compare')?.addEventListener('click', async () => {
   }
 })
 
+loadSummary()
 loadToday()
 loadTasks()
 loadCafo()
