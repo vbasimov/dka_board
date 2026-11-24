@@ -22,7 +22,20 @@
       <button data-p="settings">Настройки</button>
     </nav>
     <main>
-      <section class="panel" id="p-today"><div id="today"><p class="muted">Загрузка…</p></div></section>
+      <section class="panel" id="p-today">
+        <details class="card">
+          <summary>Как начать: пять шагов</summary>
+          <ol class="plain">
+            <li>Распакуйте архив в отдельную папку и запустите <code>start.cmd</code> (Windows) или <code>start.sh</code>.</li>
+            <li>Откройте <code>http://127.0.0.1:7777</code> в браузере.</li>
+            <li>Раздел «Задачи»: добавьте первую задачу из письма.</li>
+            <li>Раздел «КАФО»: укажите адрес хранилища и нажмите «Сверить версии».</li>
+            <li>Раздел «Ревью недели»: нажмите «Собрать ревью» в конце недели.</li>
+          </ol>
+          <p class="muted">Подробная инструкция — <code>docs/user-guide.md</code>.</p>
+        </details>
+        <div id="today"><p class="muted">Загрузка…</p></div>
+      </section>
 
       <section class="panel" id="p-tasks" hidden>
         <h2>Задачи</h2>

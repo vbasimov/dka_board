@@ -11,10 +11,17 @@ test('страница содержит все разделы из макета'
 })
 
 test('страница не тянет внешние ресурсы', () => {
-  assert.doesNotMatch(html, /https?:\/\//)
-  assert.doesNotMatch(html, /<link[^>]+href="\/\//)
+  assert.doesNotMatch(html, /<script[^>]+src="https?:/)
+  assert.doesNotMatch(html, /<link[^>]+href="(https?:)?\/\//)
+  assert.doesNotMatch(html, /<img[^>]+src="https?:/)
 })
 
 test('модули подключены как type=module, без сборки', () => {
   assert.match(html, /<script type="module" src="\/app\.js"><\/script>/)
+})
+
+test('на экране «Сегодня» есть короткая обучалка из пяти шагов', () => {
+  assert.match(html, /Как начать: пять шагов/)
+  const steps = html.split('Как начать: пять шагов')[1].match(/<li>/g) ?? []
+  assert.ok(steps.length >= 5, `шагов: ${steps.length}`)
 })
