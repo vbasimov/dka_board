@@ -11,9 +11,64 @@
     <h1>Ассистент архитектора</h1>
     <span class="note">локально, без выхода в сеть</span>
   </header>
-  <main id="root" aria-live="polite">
-    <p class="muted">Загрузка…</p>
-  </main>
+  <div class="layout">
+    <nav id="nav" aria-label="Разделы">
+      <button data-p="today" aria-current="true">Сегодня</button>
+      <button data-p="tasks">Задачи</button>
+      <button data-p="cafo">КАФО</button>
+      <button data-p="diagrams">Схемы</button>
+      <button data-p="facts">Факты и решения</button>
+      <button data-p="review">Ревью недели</button>
+      <button data-p="settings">Настройки</button>
+    </nav>
+    <main>
+      <section class="panel" id="p-today"><div id="today"><p class="muted">Загрузка…</p></div></section>
+
+      <section class="panel" id="p-tasks" hidden>
+        <h2>Задачи</h2>
+        <div id="tasks"></div>
+      </section>
+
+      <section class="panel" id="p-cafo" hidden>
+        <h2>КАФО</h2>
+        <div class="row">
+          <button class="btn" id="sync-cafo">Сверить версии</button>
+          <span class="muted" id="cafo-hint"></span>
+        </div>
+        <div id="cafo"></div>
+      </section>
+
+      <section class="panel" id="p-diagrams" hidden>
+        <h2>Схемы и расхождения</h2>
+        <p class="muted">Выберите файл draw.io и впишите интеграции из КАФО по одной в строке в виде «Источник → Приёмник».</p>
+        <div class="row">
+          <input type="file" id="diagram-file" accept=".drawio,.xml">
+          <button class="btn" id="compare">Сверить</button>
+        </div>
+        <textarea id="cafo-list" class="draft" rows="4" placeholder="Сервис платежей → Kafka"></textarea>
+        <div id="comparison"></div>
+      </section>
+
+      <section class="panel" id="p-facts" hidden>
+        <h2>Факты и решения</h2>
+        <div id="facts"></div>
+      </section>
+
+      <section class="panel" id="p-review" hidden>
+        <h2>Ревью недели</h2>
+        <div class="row">
+          <button class="btn" id="build-review">Собрать ревью</button>
+          <span class="muted" id="review-hint"></span>
+        </div>
+        <div id="review"></div>
+      </section>
+
+      <section class="panel" id="p-settings" hidden>
+        <h2>Настройки</h2>
+        <table id="config"></table>
+      </section>
+    </main>
+  </div>
   <script type="module" src="/app.js"></script>
 </body>
 </html>

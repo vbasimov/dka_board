@@ -15,7 +15,7 @@
 
 ## 2. Что реализовано и проверено
 
-`node --test` в `assistant/`: **84 теста, все зелёные**.
+`node --test` в `assistant/`: **92 теста, все зелёные**.
 
 | Модуль | Файл | Что проверено |
 |---|---|---|
@@ -30,7 +30,8 @@
 | Черновики ответов | `src/drafts/build.js` | позиция из подтверждённых фактов, ссылки на источники, предупреждения об устаревших и неподтверждённых, честный отказ при пустом реестре |
 | Разбор письма | `src/domain/email.js` | срок, эскалация, поручение, отсутствие выдуманного срока |
 | Экран «Сегодня» | `ui/today.js` | три числа, не более трёх карточек, экранирование, пустой день |
-| Сервер | `src/server/app.js` | 127.0.0.1, статика, `/api/state`, `/api/facts`, `/api/facts/:id/confirm`, `/api/cafo/sync`, `/api/drafts/build`, `/api/diagrams/compare`, `/api/review/build`, 404 на выход из папки |
+| Интерфейс | `ui/index.html`, `ui/app.js`, `ui/lists.js` | семь разделов, работа через API, без внешних ресурсов и сборки |
+| Сервер | `src/server/app.js` | 127.0.0.1, статика, `/api/state`, `/api/facts`, `/api/facts/:id/confirm`, `/api/cafo/sync`, `/api/drafts/build`, `/api/diagrams/compare`, `/api/review/build`, `/api/config`, 404 на выход из папки |
 
 ## 3. Что не проверено и почему
 

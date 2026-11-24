@@ -193,6 +193,14 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir }) {
       }
       return
     }
+    if (url.pathname === '/api/config') {
+      send(response, 200, {
+        'папка данных': dataDir ?? 'не задана',
+        'адрес Confluence': cafoBaseUrl || 'не задан',
+        'режим': 'локальный, без выхода в сеть'
+      })
+      return
+    }
     if (url.pathname === '/api/health') {
       send(response, 200, { ok: true, tasks: store.count() })
       return

@@ -21,3 +21,22 @@ main{padding:20px 24px;max-width:1000px}
 h3{font-size:15px;margin:18px 0 8px}
 ul.plain{margin:6px 0 0 18px;padding:0}
 ul.plain li{margin:4px 0}
+
+.layout{display:grid;grid-template-columns:200px 1fr;min-height:calc(100vh - 45px)}
+nav{background:var(--panel);border-right:1px solid var(--line);padding:12px}
+nav button{display:block;width:100%;text-align:left;background:none;border:0;padding:9px 10px;border-radius:6px;font:inherit;color:var(--ink);cursor:pointer}
+nav button:hover{background:var(--chip)}
+nav button[aria-current="true"]{background:var(--chip);font-weight:600;box-shadow:inset 3px 0 0 var(--accent)}
+main{padding:20px 24px;max-width:1000px}
+h2{font-size:18px;margin:0 0 14px}
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:10px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);font-size:14px}
+th{background:#fafbfc;color:var(--muted);font-weight:600;font-size:13px}
+tr:last-child td{border-bottom:0}
+.badge{font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
+.badge.ok{color:#1d6b3a;border-color:#bcd9c6;background:#eef7f1}
+.badge.warn{color:#8a5a00;border-color:#e6d2a8;background:#fdf6e7}
+.badge.bad{color:#8f2a22;border-color:#e3bcb8;background:#fbeceb}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:8px 12px;font:inherit;cursor:pointer}
+.draft{background:#fbfcfd;border:1px solid var(--line);border-radius:8px;padding:12px;white-space:pre-wrap;font-size:14px;width:100%;font-family:inherit}
+.panel[hidden]{display:none}
