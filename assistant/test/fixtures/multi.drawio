@@ -1,0 +1,26 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="a1" name="Платежи">
+    <mxGraphModel><root>
+      <mxCell id="0"/><mxCell id="1" parent="0"/>
+      <mxCell id="2" value="Сервис платежей" style="shape=hexagon" vertex="1" parent="1"/>
+      <mxCell id="3" value="Kafka" style="shape=cylinder3" vertex="1" parent="1"/>
+      <mxCell id="4" style="dashed=1" edge="1" parent="1" source="2" target="3"/>
+    </root></mxGraphModel>
+  </diagram>
+  <diagram id="a2" name="Расчёты">
+    <mxGraphModel><root>
+      <mxCell id="0"/><mxCell id="1" parent="0"/>
+      <mxCell id="5" value="Сервис расчётов" style="shape=step" vertex="1" parent="1"/>
+      <mxCell id="6" value="Биллинг" style="shape=cloud" vertex="1" parent="1"/>
+      <mxCell id="7" edge="1" parent="1" source="5" target="6"/>
+    </root></mxGraphModel>
+  </diagram>
+  <diagram id="a3" name="Риски">
+    <mxGraphModel><root>
+      <mxCell id="0"/><mxCell id="1" parent="0"/>
+      <mxCell id="8" value="Антифрод" style="shape=hexagon" vertex="1" parent="1"/>
+      <mxCell id="9" value="Пользователь" style="shape=ellipse" vertex="1" parent="1"/>
+      <mxCell id="10" edge="1" parent="1" source="9" target="8"/>
+    </root></mxGraphModel>
+  </diagram>
+</mxfile>

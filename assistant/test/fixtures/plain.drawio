@@ -1,0 +1,19 @@
+<mxfile host="confluence" modified="2026-11-20T10:00:00.000Z">
+  <diagram id="d1" name="Платежи">
+    <mxGraphModel dx="800" dy="600" grid="1" page="1">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="2" value="Kafka" style="shape=cylinder3;whiteSpace=wrap;html=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="80" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="3" value="CRM" style="rounded=0;whiteSpace=wrap;html=1" vertex="1" parent="1">
+          <mxGeometry x="240" y="40" width="80" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="4" value="события заказа" style="edgeStyle=orthogonalEdgeStyle;dashed=1;html=1" edge="1" parent="1" source="2" target="3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ассистент архитектора — макет v0.1</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --panel:#ffffff; --ink:#1b1f24; --muted:#5b6672;
+    --line:#d7dce2; --accent:#1f5fa8; --ok:#1d6b3a; --warn:#8a5a00; --bad:#8f2a22;
+    --chip:#eef1f5;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+  header{border-bottom:1px solid var(--line);background:var(--panel);padding:10px 20px;display:flex;align-items:baseline;gap:14px}
+  header h1{font-size:16px;margin:0;font-weight:600}
+  header .note{font-size:12px;color:var(--muted)}
+  .layout{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 45px)}
+  nav{background:var(--panel);border-right:1px solid var(--line);padding:12px}
+  nav button{display:block;width:100%;text-align:left;background:none;border:0;padding:9px 10px;border-radius:6px;font:inherit;color:var(--ink);cursor:pointer}
+  nav button:hover{background:var(--chip)}
+  nav button[aria-current="true"]{background:var(--chip);font-weight:600;box-shadow:inset 3px 0 0 var(--accent)}
+  main{padding:20px 24px;max-width:1100px}
+  h2{font-size:18px;margin:0 0 14px}
+  h3{font-size:15px;margin:18px 0 8px}
+  .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+  .num{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}
+  .num b{display:block;font-size:28px;line-height:1.1}
+  .num span{color:var(--muted);font-size:13px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:10px}
+  .card b{display:block;margin-bottom:4px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .muted{color:var(--muted);font-size:13px}
+  .chip{background:var(--chip);border-radius:999px;padding:2px 9px;font-size:12px;color:var(--muted)}
+  .chip.p1{background:#fdecea;color:var(--bad)}
+  .chip.p2{background:#fff4e0;color:var(--warn)}
+  .chip.esc{background:#fdecea;color:var(--bad)}
+  .badge{font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
+  .badge.ok{color:var(--ok);border-color:#bcd9c6;background:#eef7f1}
+  .badge.warn{color:var(--warn);border-color:#e6d2a8;background:#fdf6e7}
+  .badge.bad{color:var(--bad);border-color:#e3bcb8;background:#fbeceb}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);font-size:14px}
+  th{background:#fafbfc;color:var(--muted);font-weight:600;font-size:13px}
+  tr:last-child td{border-bottom:0}
+  .btn{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:8px 12px;font:inherit;cursor:pointer}
+  .btn.ghost{background:var(--panel);color:var(--accent);border:1px solid var(--accent)}
+  .draft{background:#fbfcfd;border:1px solid var(--line);border-radius:8px;padding:12px;white-space:pre-wrap;font-size:14px}
+  .src{display:flex;gap:8px;align-items:center;padding:6px 0;border-top:1px dashed var(--line);font-size:13px}
+  ul.plain{margin:6px 0 0 18px;padding:0}
+  ul.plain li{margin:4px 0}
+  .panel[hidden]{display:none}
+  .banner{background:#fff9e6;border:1px solid #e6d2a8;color:#5b4200;border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Ассистент архитектора</h1>
+  <span class="note">макет v0.1 для согласования · данные вымышленные</span>
+</header>
+
+<div class="layout">
+  <nav id="nav" aria-label="Разделы">
+    <button data-p="today" aria-current="true">Сегодня</button>
+    <button data-p="card">Карточка запроса</button>
+    <button data-p="tasks">Задачи</button>
+    <button data-p="cafo">КАФО</button>
+    <button data-p="diagrams">Схемы</button>
+    <button data-p="decisions">Решения</button>
+    <button data-p="review">Ревью недели</button>
+    <button data-p="settings">Настройки</button>
+  </nav>
+
+  <main>
+    <div class="banner">Это статичный макет. Кнопки переключают экраны, но ничего не сохраняют и не отправляют.</div>
+
+    <section class="panel" id="p-today">
+      <h2>Сегодня, вторник 24 ноября</h2>
+      <div class="nums">
+        <div class="num"><b>4</b><span>нужны ваше решение или ответ сегодня</span></div>
+        <div class="num"><b>2</b><span>просрочено</span></div>
+        <div class="num"><b>3</b><span>решения не зафиксированы в КАФО</span></div>
+      </div>
+
+      <h3>Сделать сегодня</h3>
+      <div class="card">
+        <b>Согласовать интеграцию сервиса платежей с антифродом</b>
+        <div class="row">
+          <span class="chip esc">эскалация: руководитель антифрода написал дважды</span>
+          <span class="chip p2">срок: сегодня 18:00</span>
+          <span class="muted">ждёт: архитектор ФО Риски</span>
+        </div>
+      </div>
+      <div class="card">
+        <b>Ответить на запрос «покажи архитектуру расчётов»</b>
+        <div class="row">
+          <span class="chip p2">срок: завтра</span>
+          <span class="chip">есть готовое обоснование и две схемы</span>
+        </div>
+      </div>
+      <div class="card">
+        <b>Зафиксировать в КАФО решение по очереди событий</b>
+        <div class="row">
+          <span class="chip p1">виснет 4 дня: решение принято в переписке</span>
+          <span class="muted">риск: комитет в четверг</span>
+        </div>
+      </div>
+
+      <h3>Ждут ответа</h3>
+      <table>
+        <thead><tr><th>От кого</th><th>Тема</th><th>Срок</th><th>Вердикт</th><th>Почему</th></tr></thead>
+        <tbody>
+          <tr><td>Антифрод</td><td>Нужна интеграция к релизу</td><td>сегодня</td><td>решить</td><td>эскалация, срок</td></tr>
+          <tr><td>Аналитики</td><td>Забыли про интеграцию с биллингом</td><td>пятница</td><td>ответить</td><td>срок, есть готовое обоснование</td></tr>
+          <tr><td>Безопасность</td><td>Новые требования к журналированию</td><td>четверг</td><td>решить</td><td>поручение руководителя</td></tr>
+          <tr><td>Смежная команда</td><td>Как устроены расчёты</td><td>нет</td><td>прочитать позже</td><td>нет срока и эскалации</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Что происходит</h3>
+      <ul class="plain">
+        <li>Обновилась страница КАФО «Платежи»: версия 14 вместо 12. Затронуто 3 факта.</li>
+        <li>Новое требование безопасности: срок хранения журналов 1 год.</li>
+        <li>Схема «Расчёты» расходится с КАФО: в схеме есть связь с биллингом, в КАФО её нет.</li>
+        <li>На согласование поступило: изменение формата событий.</li>
+      </ul>
+    </section>
+
+    <section class="panel" id="p-card" hidden>
+      <h2>Карточка запроса</h2>
+      <p class="muted">Письмо от антифрода, 24.11.2026, 09:12 · срок сегодня 18:00 · ждёт: архитектор ФО Риски</p>
+      <div class="split">
+        <div>
+          <h3>Запрос</h3>
+          <div class="card">
+            Коллеги, добрый день. К релизу нужна интеграция платежей с антифродом
+            по событиям. Подскажите, как это согласовать и какие требования безопасности
+            нужно учесть. Ответ нужен сегодня до 18:00.
+          </div>
+          <p class="muted">Приоритет выставлен по признакам: эскалация, срок, поручение руководителя.</p>
+        </div>
+        <div>
+          <h3>Черновик ответа</h3>
+          <div class="draft">Коллеги, добрый день.
+
+Интеграция по событиям уже описана в архитектуре: сервис платежей передаёт события в шину Kafka, антифрод подписывается на них. Решение зафиксировано 20.11, версия 12.
+
+По безопасности: с 24.11 действует требование хранить журналы один год, это добавляет к решению пункт по хранению.
+
+Предлагаю согласовать в четверг на комитете и обновить КАФО к среде.</div>
+          <div class="src"><span class="badge warn">устарело</span> КАФО «Платежи», версия 12; в хранилище уже 14 — 2 правки</div>
+          <div class="src"><span class="badge ok">свежо</span> Схема «Платежи», страница 1, версия 4, сверено сегодня</div>
+          <div class="src"><span class="badge bad">не сверено</span> Требование безопасности от 24.11, источник недоступен</div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn">Скопировать черновик</button>
+            <button class="btn ghost">Открыть источник</button>
+            <button class="btn ghost">Править</button>
+            <button class="btn ghost">Отложить</button>
+          </div>
+          <p class="muted">Отправка только вручную, из почтовой программы.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="p-tasks" hidden>
+      <h2>Задачи</h2>
+      <p class="muted">Всё, что пришло из писем, файлов, схем, Jira или добавлено вручную. Ничего не удаляется.</p>
+      <table>
+        <thead><tr><th>Задача</th><th>Источник</th><th>Срок</th><th>Состояние</th></tr></thead>
+        <tbody>
+          <tr><td>Согласовать интеграцию платежей с антифродом</td><td>письмо, 24.11</td><td>сегодня</td><td>в работе</td></tr>
+          <tr><td>Зафиксировать решение по очереди событий</td><td>протокол, 20.11</td><td>четверг</td><td>не начата</td></tr>
+          <tr><td>Обновить КАФО после требования безопасности</td><td>письмо, 24.11</td><td>среда</td><td>не начата</td></tr>
+          <tr><td>Разобрать расхождение схемы «Расчёты»</td><td>схема, версия 4</td><td>пятница</td><td>не начата</td></tr>
+          <tr><td>Ответить на запрос по расчётам</td><td>письмо, 23.11</td><td>завтра</td><td>черновик готов</td></tr>
+          <tr><td>Проверить бэклог квартала</td><td>добавлено вручную</td><td>пятница</td><td>не начата</td></tr>
+        </tbody>
+      </table>
+      <div class="row" style="margin-top:12px">
+        <button class="btn">Новая задача</button>
+        <button class="btn ghost">Добавить из письма</button>
+        <span class="chip">быстрая форма: Ctrl+Alt+N</span>
+      </div>
+    </section>
+
+    <section class="panel" id="p-cafo" hidden>
+      <h2>КАФО</h2>
+      <p class="muted">Функциональных областей: 14. Количество настраивается.</p>
+      <table>
+        <thead><tr><th>Страница</th><th>Область</th><th>Версия</th><th>Проверено</th><th>Состояние</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>Платежи</td><td>Платежи</td><td>14</td><td>сегодня</td><td><span class="badge warn">устарело</span></td><td><button class="btn ghost">Обновить</button></td></tr>
+          <tr><td>Расчёты</td><td>Расчёты</td><td>8</td><td>сегодня</td><td><span class="badge ok">свежо</span></td><td><button class="btn ghost">Обновить</button></td></tr>
+          <tr><td>Антифрод</td><td>Риски</td><td>5</td><td>вчера</td><td><span class="badge ok">свежо</span></td><td><button class="btn ghost">Обновить</button></td></tr>
+          <tr><td>Биллинг</td><td>Биллинг</td><td>11</td><td>—</td><td><span class="badge bad">не сверено</span></td><td><button class="btn ghost">Обновить</button></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel" id="p-diagrams" hidden>
+      <h2>Схемы</h2>
+      <p class="muted">Схемы draw.io: файлы и вложения страниц. Программа только читает, не меняет.</p>
+      <table>
+        <thead><tr><th>Схема</th><th>Источник</th><th>Версия</th><th>Разобрана</th></tr></thead>
+        <tbody>
+          <tr><td>Платежи</td><td>вложение страницы «Платежи»</td><td>4</td><td>сегодня</td></tr>
+          <tr><td>Расчёты</td><td>файл</td><td>4</td><td>сегодня</td></tr>
+          <tr><td>Антифрод, поток событий</td><td>вложение страницы «Антифрод»</td><td>2</td><td>вчера</td></tr>
+        </tbody>
+      </table>
+      <h3>Расхождения с КАФО · схема «Расчёты»</h3>
+      <div class="split">
+        <div class="card">
+          <b>Есть в схеме, нет в КАФО</b>
+          <ul class="plain"><li>Расчёты → Биллинг, «итоговые суммы»</li></ul>
+        </div>
+        <div class="card">
+          <b>Есть в КАФО, нет в схеме</b>
+          <ul class="plain"><li>Расчёты → Хранилище отчётов</li></ul>
+        </div>
+      </div>
+      <div class="card">
+        <b>Требует вашего взгляда</b>
+        <ul class="plain">
+          <li>Связь без начала и конца, подпись «сверка» — программа не смогла определить участников.</li>
+          <li>Элемент «BI» — внешняя система или внутренний компонент, признаков недостаточно.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="panel" id="p-decisions" hidden>
+      <h2>Решения</h2>
+      <p class="muted">Журнал решений и долги перед КАФО.</p>
+      <table>
+        <thead><tr><th>Решение</th><th>Дата</th><th>Источник</th><th>В КАФО</th></tr></thead>
+        <tbody>
+          <tr><td>Платежи передают события в Kafka</td><td>20.11</td><td>протокол</td><td>да, версия 12</td></tr>
+          <tr><td>Очередь событий — одна на домен</td><td>21.11</td><td>письмо</td><td><span class="badge warn">нет</span></td></tr>
+          <tr><td>Журналы храним один год</td><td>24.11</td><td>требование</td><td><span class="badge warn">нет</span></td></tr>
+          <tr><td>Расчёты получают суммы из биллинга</td><td>22.11</td><td>схема + письмо</td><td><span class="badge warn">нет</span></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel" id="p-review" hidden>
+      <h2>Ревью недели</h2>
+      <p class="muted">Отчёт за 18–24 ноября. Сохранён в папке данных, открывается повторно.</p>
+      <div class="card">
+        <b>Что произошло</b>
+        <ul class="plain">
+          <li>Пять запросов на обоснование, два из них — про расчёты.</li>
+          <li>Пришли два новых требования безопасности.</li>
+          <li>КАФО «Платежи» обновлялась дважды.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <b>Что не учли</b>
+        <ul class="plain">
+          <li>Интеграция с биллингом есть в схеме, но отсутствует в КАФО.</li>
+          <li>Требование хранения журналов не отражено ни в одном решении.</li>
+          <li>Решение по очереди событий висит 4 дня без фиксации.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <b>Что предлагаю</b>
+        <ul class="plain">
+          <li>Добавить проверку полноты интеграций в шаблон ревью.</li>
+          <li>Обновить КАФО по журналам до комитета в четверг.</li>
+          <li>Внести правило: решение считается принятым после записи в журнал.</li>
+        </ul>
+      </div>
+      <p class="muted">Отчёт — подсказка. Решение всегда за вами.</p>
+    </section>
+
+    <section class="panel" id="p-settings" hidden>
+      <h2>Настройки</h2>
+      <table>
+        <tbody>
+          <tr><th>Папка для данных</th><td>Документы\Ассистент\Данные</td></tr>
+          <tr><th>Путь к gigacode</th><td>найден автоматически</td></tr>
+          <tr><th>Папка с выгрузкой КАФО</th><td>Документы\Ассистент\КАФО</td></tr>
+          <tr><th>Источники задач</th><td>почта (вручную), папки с файлами, Jira</td></tr>
+          <tr><th>Частота сверки версий</th><td>при каждом открытии карточки</td></tr>
+          <tr><th>Число функциональных областей</th><td>14</td></tr>
+          <tr><th>Плагины</th><td>не установлены</td></tr>
+        </tbody>
+      </table>
+      <div class="row" style="margin-top:12px">
+        <button class="btn">Проверить</button>
+        <button class="btn ghost">Открыть папку данных</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  const nav = document.getElementById('nav');
+  const buttons = Array.from(nav.querySelectorAll('button'));
+  function show(id){
+    document.querySelectorAll('.panel').forEach(p => p.hidden = (p.id !== 'p-' + id));
+    buttons.forEach(b => b.setAttribute('aria-current', String(b.dataset.p === id)));
+  }
+  buttons.forEach(b => b.addEventListener('click', () => show(b.dataset.p)));
+  show('today');
+</script>
+</body>
+</html>
