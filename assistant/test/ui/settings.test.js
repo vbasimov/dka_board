@@ -32,3 +32,10 @@ test('содержимое настроек экранируется', () => {
   assert.doesNotMatch(html, /<script>x/)
   assert.doesNotMatch(html, /<img/)
 })
+
+test('на настройках есть кнопки проверки и открытия папки данных', () => {
+  const html = renderSettings({ 'папка данных': '/tmp/data' })
+  assert.match(html, /data-action="recheck-settings"/)
+  assert.match(html, /data-action="open-data-folder"/)
+  assert.match(html, /Проверить/)
+})

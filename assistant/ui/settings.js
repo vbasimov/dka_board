@@ -18,5 +18,9 @@ export function renderSettings(config = {}) {
   ${checkBadge(dataOk, 'данные: подключены', 'данные: папка не задана')}
   ${checkBadge(sourceOk, 'источники: подключены', 'источники: адрес Confluence не задан')}
   <span class="badge ok">режим: ${esc(config['режим'] || 'локальный')}</span>
+</div>
+<div class="toolbar">
+  <button class="btn sm" type="button" data-action="recheck-settings">Проверить</button>
+  <button class="btn sm ghost" type="button" data-action="open-data-folder">Открыть папку данных</button>
 </div>`
 }
