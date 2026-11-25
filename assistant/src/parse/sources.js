@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -99,4 +100,9 @@ export function loadDiagram(input = {}) {
     return xml ? { xml } : { unsupported: true, reason: UNSUPPORTED_IMAGE_REASON }
   }
   return { xml: readDrawioFile(path) }
+}
+
+export function fileDigest(filePath) {
+  const path = resolvePath(filePath)
+  return createHash('sha256').update(readFile(path)).digest('hex')
 }

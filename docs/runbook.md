@@ -61,15 +61,33 @@ AA_PLUGINS_DIR=/var/lib/architect-assistant/плагины
 - КАФО: сверка версий требует доступа к метаданным страниц Confluence.
 - Поиск: при отсутствии модели эмбеддингов остаётся только полнотекстовый режим.
 
-## 6. Обновление
+## 6. Обновление и откат
 
-```bash
-systemctl stop architect-assistant 2>/dev/null || pkill -f 'bin/serve.js'
-unzip -o architect-assistant.zip -d /opt/architect-assistant
-systemctl start architect-assistant
+Раскладка: каждая версия — отдельная папка, указатель `current` хранит выбранную.
+
+```
+/opt/assistant/releases/0.1.0/
+/opt/assistant/releases/0.2.0/
+/opt/assistant/current   # файл с номером версии
 ```
 
-Папка `AA_DATA` не затрагивается: задачи, письма, факты и отчёты остаются на месте.
+Установка новой версии:
+
+```bash
+systemctl stop architect-assistant
+unzip architect-assistant.zip -d /opt/assistant/releases/0.2.0
+node /opt/assistant/releases/0.2.0/install/rollback.js --activate 0.2.0
+systemctl start architect-assistant
+curl -s http://127.0.0.1:7777/api/health      # integrity должен быть "ok"
+```
+
+Откат занимает секунды:
+
+```bash
+node /opt/assistant/releases/0.2.0/install/rollback.js --rollback
+```
+
+Папка `AA_DATA` не затрагивается: задачи, письма, факты и отчёты остаются на месте. Если `/api/health` вернул `integrity: "повреждено: …"`, версия распакована не полностью или архив изменён — переустановите её.
 
 ## 7. Резервная копия
 

@@ -36,3 +36,16 @@ test('неизвестный путь отдаёт 404 с русским тек�
   assert.match(body.error, /не найдено/)
   server.close()
 })
+
+test('health сообщает состояние целостности бандла', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'server-'))
+  const server = createServer({ store: createStore(dir), integrity: 'повреждено: ui/app.js' })
+  await new Promise(done => server.listen(0, '127.0.0.1', done))
+  const { port } = server.address()
+  try {
+    const body = await (await fetch(`http://127.0.0.1:${port}/api/health`)).json()
+    assert.equal(body.integrity, 'повреждено: ui/app.js')
+  } finally {
+    server.close()
+  }
+})

@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, mkdirSync, statSync, writeFileSync } from 'n
 import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { crc32 } from 'node:zlib'
+import { createHash } from 'node:crypto'
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url))
 const OUT_DIR = join(ROOT, 'dist')
@@ -85,6 +86,15 @@ function buildZip(files) {
 }
 
 const files = INCLUDE.flatMap(entry => collect(entry))
+const manifest = {
+  version: JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version ?? '0.0.0',
+  generatedAt: new Date().toISOString(),
+  files: files.map(file => ({
+    path: file.path,
+    sha256: createHash('sha256').update(file.data).digest('hex')
+  }))
+}
+files.push({ path: 'manifest.json', data: Buffer.from(JSON.stringify(manifest, null, 2), 'utf8') })
 const archive = buildZip(files)
 mkdirSync(OUT_DIR, { recursive: true })
 const target = join(OUT_DIR, 'architect-assistant.zip')

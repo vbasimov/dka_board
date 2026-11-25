@@ -67,7 +67,7 @@ function readJson(request, limit = 1_000_000) {
   })
 }
 
-export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions, drafts, plugins }) {
+export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions, drafts, plugins, integrity = 'нет манифеста' }) {
   return async (request, response) => {
     const url = new URL(request.url, 'http://127.0.0.1')
     const isWrite = request.method === 'POST'
@@ -504,15 +504,15 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
       return
     }
     if (url.pathname === '/api/health') {
-      send(response, 200, { ok: true, tasks: store.count() })
+      send(response, 200, { ok: true, tasks: store.count(), integrity })
       return
     }
     send(response, 404, { error: 'не найдено' })
   }
 }
 
-export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions, drafts, plugins, host = '127.0.0.1' }) {
-  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail, bridge, decisions, drafts, plugins }))
+export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions, drafts, plugins, integrity, host = '127.0.0.1' }) {
+  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail, bridge, decisions, drafts, plugins, integrity }))
   server.host = host
   return server
 }
