@@ -7,7 +7,7 @@ const uiDir = fileURLToPath(new URL('../../ui/', import.meta.url))
 const html = readFileSync(new URL('../../ui/index.html', import.meta.url), 'utf8')
 
 test('страница содержит все разделы макета v2', () => {
-  for (const panel of ['summary', 'today', 'quiz', 'card', 'cafo', 'diagrams', 'tasks', 'review', 'settings']) {
+  for (const panel of ['summary', 'today', 'quiz', 'card', 'search', 'cafo', 'diagrams', 'tasks', 'review', 'settings']) {
     assert.match(html, new RegExp(`id="p-${panel}"`), `нет раздела ${panel}`)
   }
 })

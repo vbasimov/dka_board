@@ -11,6 +11,7 @@ export function buildDraft(input = {}) {
   const facts = Array.isArray(input.facts) ? input.facts : []
   const sourceStatus = input.sourceStatus ?? {}
   const request = String(input.request ?? '').trim()
+  const ragItems = Array.isArray(input.ragItems) ? input.ragItems : []
   const subject = String(input.subject ?? '').trim()
 
   const confirmed = facts.filter(fact => fact.status === 'подтверждён' && !fact.supersededBy)
@@ -64,6 +65,13 @@ export function buildDraft(input = {}) {
     for (const fact of superseded) lines.push(`— ${fact.claim} (заменён на ${fact.supersededBy})`)
   }
 
+  if (ragItems.length > 0) {
+    lines.push('', 'Найдено в базе знаний:')
+    for (const item of ragItems.slice(0, 5)) {
+      lines.push(`— ${item.title || item.path}: ${item.snippet}`)
+    }
+  }
+
   if (request) lines.push('', 'Следующий шаг: согласовать на ближайшем комитете и обновить КАФО.')
 
   return {
@@ -74,7 +82,8 @@ export function buildDraft(input = {}) {
       confirmed: confirmed.length,
       proposed: proposed.length,
       superseded: superseded.length,
-      unreliable: unreliable.length
+      unreliable: unreliable.length,
+      rag: ragItems.length
     }
   }
 }

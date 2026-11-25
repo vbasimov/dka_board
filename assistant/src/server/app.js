@@ -189,11 +189,20 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag }) {
         for (const meta of cafo ? cafo.list() : []) {
           sourceStatus[`page_id=${meta.pageId}; version=${meta.version}`] = meta.status
         }
+        let ragItems = []
+        if (body.ragQuery && rag) {
+          try {
+            ragItems = await rag.search(body.ragQuery, { limit: 5 })
+          } catch {
+            ragItems = []
+          }
+        }
         const draft = buildDraft({
           subject: body.subject,
           request: body.request,
           facts: facts ? facts.all() : [],
-          sourceStatus
+          sourceStatus,
+          ragItems
         })
         send(response, 200, { draft })
       } catch (error) {

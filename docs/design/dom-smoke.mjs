@@ -31,7 +31,8 @@ const fixtures = {
   '/api/cafo': { items: [{ pageId: '1', title: 'КАФО: Платежи', version: 14, status: 'устарело' }] },
   '/api/facts': { items: [{ id: 'f1', claim: 'Платежи передают события в Kafka', fo: 'Платежи', status: 'подтверждён', sourceRef: 'page_id=1; version=14' }] },
   '/api/quiz': { items: [{ id: 'f1', claim: 'Платежи передают события в Kafka', sourceType: 'КАФО', sourceRef: 'page_id=1; version=14' }] },
-  '/api/config': { 'папка данных': '/tmp/data', 'адрес Confluence': 'не задан' }
+  '/api/config': { 'папка данных': '/tmp/data', 'адрес Confluence': 'не задан' },
+  '/api/rag/search?q=Kafka': { query: 'Kafka', items: [{ id: '42', title: 'КАФО: Платежи', snippet: 'События в Kafka', score: 0.91, sourceType: 'md', path: '/kb/platezhi.md' }] }
 }
 
 globalThis.fetch = async url => {
@@ -61,7 +62,8 @@ const checks = {
   'квиз: три действия': document.querySelectorAll('#quiz [data-verdict]').length >= 3,
   'кафо: таблица': /14/.test(text('#cafo')),
   'задачи: строка': /Интеграция к релизу/.test(text('#tasks')),
-  'настройки: значения': /tmp\/data|не задан/.test(text('#settings'))
+  'настройки: значения': /tmp\/data|не задан/.test(text('#settings')),
+  'поиск: подсказка': /Введите запрос/.test(text('#search'))
 }
 let failed = 0
 for (const [name, ok] of Object.entries(checks)) {
@@ -70,3 +72,6 @@ for (const [name, ok] of Object.entries(checks)) {
 }
 console.log('ошибок исполнения:', errors.length, errors.slice(0, 2).join('; '))
 process.exit(failed || errors.length ? 1 : 0)
+
+console.log('SEARCH TEXT:', JSON.stringify(text('#search')).slice(0, 200))
+console.log('SEARCH HTML:', (document.querySelector('#search')?.innerHTML ?? 'нет').slice(0, 200))

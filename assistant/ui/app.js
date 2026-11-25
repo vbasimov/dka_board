@@ -1,6 +1,7 @@
 import { renderToday, esc } from './today.js'
 import { renderOnepager } from './onepager.js'
 import { renderQuiz } from './quiz.js'
+import { renderSearch } from './search.js'
 import { renderCard } from './card.js'
 import { renderTasks, renderCafo, renderReview, renderComparison } from './lists.js'
 import { renderSettings } from './settings.js'
@@ -20,6 +21,38 @@ async function getJson(url, options) {
 
 function fail(target, error) {
   $(target).innerHTML = `<div class="error-banner" role="alert"><b>Не удалось получить данные</b><p>${esc(error.message)}</p></div>`
+}
+
+let searchState = {}
+
+function paintSearch() {
+  const host = $('#search')
+  if (!host) return
+  host.innerHTML = renderSearch(searchState)
+  const input = $('#rag-q')
+  if (input) {
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        runSearch()
+      }
+    })
+  }
+}
+
+async function runSearch() {
+  const input = $('#rag-q')
+  const query = input ? input.value.trim() : ''
+  if (!query) return
+  searchState = { query, loading: true }
+  paintSearch()
+  try {
+    const body = await getJson(`/api/rag/search?q=${encodeURIComponent(query)}`)
+    searchState = { query, items: body.items }
+  } catch (error) {
+    searchState = { query, error: error.message }
+  }
+  paintSearch()
 }
 
 async function loadSummary() {
@@ -170,6 +203,10 @@ document.addEventListener('click', event => {
 })
 
 document.addEventListener('click', async event => {
+  if (event.target.closest('[data-action="rag-search"]')) {
+    await runSearch()
+    return
+  }
   const button = event.target.closest('#quiz [data-verdict]')
   if (!button) return
   const card = button.closest('.quiz-card')
@@ -317,6 +354,7 @@ $('#compare')?.addEventListener('click', async () => {
   }
 })
 
+paintSearch()
 loadSummary()
 loadQuiz()
 loadToday()
