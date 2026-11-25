@@ -7,7 +7,7 @@ const uiDir = fileURLToPath(new URL('../../ui/', import.meta.url))
 const html = readFileSync(new URL('../../ui/index.html', import.meta.url), 'utf8')
 
 test('страница содержит все разделы макета v2', () => {
-  for (const panel of ['summary', 'today', 'quiz', 'card', 'search', 'decisions', 'cafo', 'diagrams', 'tasks', 'review', 'settings']) {
+  for (const panel of ['summary', 'today', 'quiz', 'card', 'search', 'facts', 'decisions', 'cafo', 'diagrams', 'tasks', 'review', 'settings']) {
     assert.match(html, new RegExp(`id="p-${panel}"`), `нет раздела ${panel}`)
   }
 })
@@ -73,4 +73,10 @@ test('на экране задач есть поиск и фильтр по ис
   assert.match(html, /id="task-filter"/)
   assert.match(html, /id="task-status"/)
   assert.match(html, /все источники/)
+})
+
+test('на экране ревью есть поле правки и кнопка сохранения', () => {
+  assert.match(html, /id="review-text"/)
+  assert.match(html, /data-action="review-save"/)
+  assert.match(html, /Сохранить правку/)
 })

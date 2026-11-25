@@ -4,7 +4,7 @@ import { renderQuiz } from './quiz.js'
 import { renderSearch } from './search.js'
 import { renderDecisions } from './decisions.js'
 import { renderCard } from './card.js'
-import { renderTasks, renderCafo, renderReview, renderComparison } from './lists.js'
+import { renderTasks, renderCafo, renderFacts, renderReview, renderComparison } from './lists.js'
 import { renderSettings } from './settings.js'
 
 const $ = selector => document.querySelector(selector)
@@ -187,6 +187,15 @@ async function loadCard() {
     $('#card').innerHTML = renderCard({ task, cafoItems: cafoBody.items, factItems: factsBody.items })
   } catch (error) {
     fail('#card', error)
+  }
+}
+
+async function loadFacts() {
+  try {
+    const body = await getJson('/api/facts')
+    $('#facts').innerHTML = renderFacts(body.items)
+  } catch (error) {
+    fail('#facts', error)
   }
 }
 
@@ -413,6 +422,7 @@ $('#compare')?.addEventListener('click', async () => {
 
 paintSearch()
 loadSummary()
+loadFacts()
 loadDecisions()
 loadQuiz()
 loadToday()
@@ -512,6 +522,22 @@ document.addEventListener('click', async event => {
     if (hint) hint.textContent = 'Шаг сохранён, задача в «Продолжить»'
   } catch (error) {
     const hint = document.querySelector('#park-hint')
+    if (hint) hint.textContent = `Не получилось: ${error.message}`
+  }
+})
+
+document.addEventListener('click', async event => {
+  if (!event.target.closest('[data-action="review-save"]')) return
+  const markdown = document.querySelector('#review-text')?.value ?? ''
+  const hint = document.querySelector('#review-save-hint')
+  try {
+    const body = await getJson('/api/review/save', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ markdown })
+    })
+    if (hint) hint.textContent = `Правка сохранена: ${body.saved.name}`
+  } catch (error) {
     if (hint) hint.textContent = `Не получилось: ${error.message}`
   }
 })

@@ -132,3 +132,28 @@ export function renderComparison(result) {
   </div>
 </div>`
 }
+
+function factLink(fact) {
+  if (fact.supersededBy) return `<span class="badge warn">заменён на ${esc(fact.supersededBy)}</span>`
+  if (fact.supersedes) return `<span class="badge ok">заменил ${esc(fact.supersedes)}</span>`
+  return ''
+}
+
+export function renderFacts(items = []) {
+  if (!items.length) {
+    return '<div class="panel-box"><b>Фактов пока нет</b><p class="muted">Факты появляются при разборе писем, схем и страниц КАФО.</p></div>'
+  }
+  const rows = items
+    .map(fact => `<tr>
+      <td>${esc(fact.claim)}</td>
+      <td>${esc(fact.fo)}</td>
+      <td>${esc(fact.status)}</td>
+      <td>${esc(fact.sourceRef)}</td>
+      <td>${factLink(fact)}</td>
+    </tr>`)
+    .join('')
+  return `<table>
+    <thead><tr><th>Утверждение</th><th>Область</th><th>Состояние</th><th>Источник</th><th>Связь версий</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`
+}

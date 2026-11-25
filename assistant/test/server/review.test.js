@@ -42,3 +42,25 @@ test('ревью собирается, сохраняется файлом и п
     server.close()
   }
 })
+
+test('правка отчёта сохраняется и доступна как последняя', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'review-edit-'))
+  const server = createServer({ store: createStore(dir), dataDir: dir })
+  await new Promise(done => server.listen(0, '127.0.0.1', done))
+  const { port } = server.address()
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/api/review/save`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ markdown: '# Ревью\n\nправка заказчика' })
+    })
+    const body = await response.json()
+    assert.equal(response.status, 200)
+    assert.match(body.saved.name, /правка\.md$/)
+
+    const latest = await (await fetch(`http://127.0.0.1:${port}/api/review/latest`)).json()
+    assert.match(latest.latest.content, /правка заказчика/)
+  } finally {
+    server.close()
+  }
+})

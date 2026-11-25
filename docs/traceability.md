@@ -65,7 +65,7 @@
 | FR-30 | `src/facts/model.js` | `test/facts/model.test.js` | готово |
 | FR-31 | замена без удаления | `test/facts/store.test.js` | готово |
 | FR-32 | `answerable()` | `test/facts/store.test.js` | готово |
-| FR-33 | `supersedes`/`supersededBy`, история | `test/facts/store.test.js` | частично: двусторонней ссылки в интерфейсе нет |
+| FR-33 | `supersedes`/`supersededBy`, экран «Факты» с колонкой связи версий | `test/facts/store.test.js`, `test/ui/lists.test.js` | готово |
 
 ## 7. Ревью, почта, решения
 
@@ -73,7 +73,7 @@
 |---|---|---|---|
 | FR-34 | `src/review/build.js` | `test/review/build.test.js` | готово |
 | FR-35 | маршрут `/api/review/build` | `test/server/review.test.js` | частично: не отдельный скилл по расписанию |
-| FR-36 | ручной запуск | `test/server/review.test.js` | частично: правка отчёта не сохраняется |
+| FR-36 | ручной запуск, правка отчёта сохраняется файлом | `test/review/store.test.js`, `test/server/review.test.js` | готово |
 | FR-45 | `ui/onepager.js` | `test/server/onepager.test.js`, `test/ui/onepager.test.js` | готово |
 | FR-46 | `ui/quiz.js`, `/api/quiz` | `test/facts/quiz.test.js`, `test/ui/quiz.test.js` | готово |
 | FR-47 | `store.park`, кнопка «Отложить» на карточке, блок «Продолжить» | `test/server/park.test.js`, `test/ui/card.test.js` | готово |
@@ -99,8 +99,8 @@
 
 ## 9. Итог
 
-- **Готово:** 42 требований из 53.
-- **Частично:** 11.
+- **Готово:** 44 требований из 53.
+- **Частично:** 9.
 - **Нет:** 0.
 
 **Чего не хватает больше всего** (по влиянию на приёмку):

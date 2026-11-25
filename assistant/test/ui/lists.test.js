@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { renderTasks, renderCafo, renderReview, renderComparison } from '../../ui/lists.js'
+import { renderTasks, renderCafo, renderFacts, renderReview, renderComparison } from '../../ui/lists.js'
 
 test('список задач показывает источник, срок и состояние', () => {
   const html = renderTasks([{ title: 'Согласовать интеграцию', source: 'письмо', dueAt: 'сегодня', status: 'в работе' }])
@@ -85,4 +85,13 @@ test('расхождения схем группируются в три спи�
 
 test('без сравнения — пустое состояние с подсказкой', () => {
   assert.match(renderComparison(null), /Сравнение пока не выполнено/)
+})
+
+test('у факта видна двусторонняя связь версий', () => {
+  const html = renderFacts([
+    { claim: 'Новая формулировка', fo: 'Платежи', status: 'подтверждён', sourceRef: 'v5', supersedes: 'f1' },
+    { claim: 'Старая формулировка', fo: 'Платежи', status: 'заменён', sourceRef: 'v4', supersededBy: 'f2' }
+  ])
+  assert.match(html, /заменил f1/)
+  assert.match(html, /заменён на f2/)
 })

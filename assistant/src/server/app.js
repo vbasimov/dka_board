@@ -11,6 +11,7 @@ import { loadDiagram } from '../parse/sources.js'
 import { diagramState } from '../diagrams/freshness.js'
 import { tasksToCsv, factsToMarkdown } from '../export/csv.js'
 import { fillTemplate, listTemplates } from '../templates/library.js'
+import { createReviewStore } from '../review/store.js'
 import { buildReview } from '../review/build.js'
 import { unansweredFrom } from '../email/model.js'
 
@@ -72,6 +73,7 @@ function readJson(request, limit = 1_000_000) {
 
 export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions, drafts, plugins, integrity = 'нет манифеста', priorityOrder }) {
   const priorityOptions = priorityOrder ? { order: priorityOrder } : {}
+  const reviewStore = dataDir ? createReviewStore(dataDir) : null
   return async (request, response) => {
     const url = new URL(request.url, 'http://127.0.0.1')
     const isWrite = request.method === 'POST'
@@ -380,6 +382,23 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
       } catch (error) {
         send(response, 404, { error: error.message })
       }
+      return
+    }
+    if (url.pathname === '/api/review/save' && isWrite) {
+      if (!reviewStore) {
+        send(response, 503, { error: 'хранилище отчётов не подключено' })
+        return
+      }
+      try {
+        const body = await readJson(request)
+        send(response, 200, { saved: reviewStore.save(body.markdown) })
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
+      return
+    }
+    if (url.pathname === '/api/review/latest' && !isWrite) {
+      send(response, 200, { latest: reviewStore ? reviewStore.latest() : null })
       return
     }
     if (url.pathname === '/api/templates' && !isWrite) {

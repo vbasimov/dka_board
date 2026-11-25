@@ -19,6 +19,7 @@
       <button data-p="card">Карточка запроса</button>
       <button data-p="search">Поиск</button>
       <button data-p="cafo">КАФО</button>
+      <button data-p="facts">Факты</button>
       <button data-p="decisions">Решения</button>
       <button data-p="diagrams">Схемы</button>
       <button data-p="tasks">Задачи</button>
@@ -116,6 +117,11 @@
       <div id="tasks"><p class="muted">Загрузка…</p></div>
     </section>
 
+    <section class="panel" id="p-facts" hidden>
+      <h2 class="page-title">Факты</h2>
+      <div id="facts"><p class="muted">Загрузка…</p></div>
+    </section>
+
     <section class="panel" id="p-decisions" hidden>
       <h2 class="page-title">Решения</h2>
       <div id="decisions"><p class="muted">Загрузка…</p></div>
@@ -128,6 +134,12 @@
         <span class="faint" id="review-hint"></span>
       </div>
       <div id="review"><p class="muted">Отчёт пока не собран.</p></div>
+      <label class="muted" for="review-text">Правка отчёта</label>
+      <textarea id="review-text" class="draft" rows="8" aria-label="Текст отчёта для правки"></textarea>
+      <div class="toolbar">
+        <button class="btn sm" type="button" data-action="review-save">Сохранить правку</button>
+        <span class="muted" id="review-save-hint" role="status"></span>
+      </div>
     </section>
 
     <section class="panel" id="p-settings" hidden>
