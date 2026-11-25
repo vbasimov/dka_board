@@ -82,3 +82,17 @@ test('блок «Продолжить» показывает незавершё�
 test('без незавершённых дел блок честно объясняет, что возвращаться не к чему', () => {
   assert.match(renderOnepager({}), /Незавершённых дел с сохранённым шагом нет/)
 })
+
+test('на сводке есть кнопки почты и индекса', () => {
+  const html = renderOnepager({})
+  assert.match(html, /data-action="mail-sync"/)
+  assert.match(html, /data-action="mail-bridge"/)
+  assert.match(html, /Обновить почту/)
+  assert.match(html, /Отправить письма в индекс/)
+})
+
+test('подсказка состояния почты присутствует и объявлена для скринридера', () => {
+  const html = renderOnepager({})
+  assert.match(html, /id="mail-hint"/)
+  assert.match(html, /role="status"/)
+})

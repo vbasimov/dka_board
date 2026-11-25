@@ -86,6 +86,12 @@ export function renderOnepager(state = {}) {
     <div class="stat"><b>${esc(counts.toCheck ?? 0)}</b><span>проверить фактов</span></div>
   </div>`
 
+  const toolbar = `<div class="toolbar" role="group" aria-label="Почта">
+    <button class="btn sm" type="button" data-action="mail-sync">Обновить почту</button>
+    <button class="btn sm ghost" type="button" data-action="mail-bridge">Отправить письма в индекс</button>
+    <span class="muted" id="mail-hint" role="status"></span>
+  </div>`
+
   const cols = `<div class="cols3">
     ${column('Статусы КАФО', `${esc(cafo.length)} страницы`, cafo, cafoLine, 'Укажите папку с выгрузкой и сверьте версии.', 'cafo')}
     ${column('Неотвеченные сообщения', String(unanswered.length), unanswered, unansweredLine, 'Неотвеченных сообщений нет.', 'tasks')}
@@ -101,5 +107,5 @@ export function renderOnepager(state = {}) {
     ${resumeBody}
   </div>`
 
-  return `${statbar}${cols}${continueBlock}`
+  return `${statbar}${toolbar}${cols}${continueBlock}`
 }

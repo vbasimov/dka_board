@@ -1,5 +1,5 @@
 // Проверка интерфейса без браузера: поднимает index.html в jsdom, подменяет fetch фикстурами
-// и проверяет, что все блоки отрисовались без ошибок исполнения.
+// и проверяет, что блоки отрисовались, кнопки почты работают, ошибок исполнения нет.
 // Требует разово: npm i jsdom (в проект не добавляется).
 // Запуск: node docs/design/dom-smoke.mjs
 
@@ -31,6 +31,8 @@ const fixtures = {
   '/api/cafo': { items: [{ pageId: '1', title: 'КАФО: Платежи', version: 14, status: 'устарело' }] },
   '/api/facts': { items: [{ id: 'f1', claim: 'Платежи передают события в Kafka', fo: 'Платежи', status: 'подтверждён', sourceRef: 'page_id=1; version=14' }] },
   '/api/quiz': { items: [{ id: 'f1', claim: 'Платежи передают события в Kafka', sourceType: 'КАФО', sourceRef: 'page_id=1; version=14' }] },
+  '/api/email/sync': { listed: 2, read: 2, created: 2 },
+  '/api/email/bridge': { written: 2, skipped: 0, indexed: false },
   '/api/config': { 'папка данных': '/tmp/data', 'адрес Confluence': 'не задан' },
   '/api/rag/search?q=Kafka': { query: 'Kafka', items: [{ id: '42', title: 'КАФО: Платежи', snippet: 'События в Kafka', score: 0.91, sourceType: 'md', path: '/kb/platezhi.md' }] }
 }
@@ -65,6 +67,14 @@ const checks = {
   'настройки: значения': /tmp\/data|не задан/.test(text('#settings')),
   'поиск: подсказка': /Введите запрос/.test(text('#search'))
 }
+// клики по кнопкам почты
+const syncButton = document.querySelector('[data-action="mail-sync"]')
+if (syncButton) {
+  syncButton.dispatchEvent(new window.MouseEvent('click', { bubbles: true }))
+  await new Promise(resolve => setTimeout(resolve, 300))
+}
+checks['почта: кнопка обновления сработала'] = /Писем получено: 2/.test(text('#mail-hint'))
+
 let failed = 0
 for (const [name, ok] of Object.entries(checks)) {
   console.log(`${ok ? 'OK  ' : 'FAIL'} ${name}`)

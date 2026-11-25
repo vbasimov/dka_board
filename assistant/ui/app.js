@@ -203,6 +203,35 @@ document.addEventListener('click', event => {
 })
 
 document.addEventListener('click', async event => {
+  const mailSync = event.target.closest('[data-action="mail-sync"]')
+  const mailBridge = event.target.closest('[data-action="mail-bridge"]')
+  if (mailSync || mailBridge) {
+    const hint = () => $('#mail-hint')
+    if (hint()) hint().textContent = mailSync ? 'Обновляю почту…' : 'Отправляю в индекс…'
+    try {
+      if (mailSync) {
+        const result = await getJson('/api/email/sync', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ limit: 20, read: 10 })
+        })
+        await loadSummary()
+        if (hint()) hint().textContent = `Писем получено: ${result.read}`
+      } else {
+        const result = await getJson('/api/email/bridge', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ index: false })
+        })
+        await loadSummary()
+        if (hint()) hint().textContent = `Записано в индекс: ${result.written}`
+      }
+    } catch (error) {
+      if (hint()) hint().textContent = `Не получилось: ${error.message}`
+    }
+    return
+  }
+
   if (event.target.closest('[data-action="rag-search"]')) {
     await runSearch()
     return

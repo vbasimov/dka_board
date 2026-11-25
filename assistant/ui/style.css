@@ -213,3 +213,5 @@ h3.sub{font-size:var(--font-size-body); font-weight:var(--font-weight-medium); m
   .split2{grid-template-columns:1fr}
   .statbar{grid-template-columns:repeat(2,1fr)}
 }
+
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
