@@ -18,6 +18,14 @@ import { execFile } from 'node:child_process'
 const dataDir = process.env.AA_DATA ?? fileURLToPath(new URL('../.data/', import.meta.url))
 const port = Number(process.env.AA_PORT ?? 7777)
 
+let priorityOrder = null
+try {
+  const settingsPath = process.env.AA_SETTINGS ?? `${dataDir}/настройки.json`
+  priorityOrder = JSON.parse(readFileSync(settingsPath, 'utf8')).priorityOrder ?? null
+} catch {
+  priorityOrder = null
+}
+
 let integrity = 'нет манифеста'
 try {
   const bundleDir = fileURLToPath(new URL('../', import.meta.url))
@@ -60,7 +68,7 @@ const pluginsDir = process.env.AA_PLUGINS_DIR ?? `${dataDir}/плагины`
 const plugins = createPluginRegistry({ dir: pluginsDir, logger: console })
 plugins.load()
 const bridge = createEmailBridge({ dir: dataDir, index })
-const server = createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail, bridge, decisions, drafts, plugins, integrity })
+const server = createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail, bridge, decisions, drafts, plugins, integrity, priorityOrder })
 
 server.listen(port, '127.0.0.1', () => {
   console.log(`Ассистент архитектора: http://127.0.0.1:${port}`)

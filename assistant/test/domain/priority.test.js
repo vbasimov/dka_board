@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { rank, compareTasks, dueDate, reasonOf } from '../../src/domain/priority.js'
+import { rank, compareTasks, dueDate, reasonOf, normalizeOrder } from '../../src/domain/priority.js'
 
 const now = new Date('2026-11-24T10:00:00+03:00')
 const task = overrides => ({ dueAt: null, escalation: false, fromManager: false, status: 'новая', ...overrides })
@@ -54,4 +54,22 @@ test('причина приоритета объясняет, почему за�
   assert.equal(reasonOf(task({ dueAt: '2026-11-24' }), now), 'срок сегодня')
   assert.equal(reasonOf(task({ fromManager: true }), now), 'поручение руководителя')
   assert.equal(reasonOf(task({}), now), 'без срока')
+})
+
+test('порядок приоритета можно перенастроить конфигом', () => {
+  const manager = task({ fromManager: true })
+  const escalation = task({ escalation: true })
+  assert.ok(rank(manager, now) > rank(escalation, now))
+  assert.ok(rank(manager, now, { order: ['manager', 'escalation'] }) < rank(escalation, now, { order: ['manager', 'escalation'] }))
+})
+
+test('неизвестные группы в конфиге игнорируются, отсутствующие добавляются в конец', () => {
+  const order = normalizeOrder(['manager', 'неведомая'])
+  assert.equal(order[0], 'manager')
+  assert.ok(order.includes('escalation'))
+  assert.equal(order.length, 5)
+})
+
+test('закрытая задача остаётся в конце при любом порядке', () => {
+  assert.equal(rank(task({ status: 'закрыта' }), now, { order: ['other', 'closed'] }), 9)
 })

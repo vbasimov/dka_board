@@ -12,7 +12,7 @@
 | FR-02 | быстрая форма в `ui/app.js` (`quick-add`) | теста нет | частично |
 | FR-03 | дедупликация по `sourceRef` в `src/store/tasks.js` | `test/store/tasks.test.js` | частично: импорт MCP/Jira не сделан |
 | FR-04 | `store.search`, маршрут `/api/tasks` | `test/store/tasks.test.js` (10 000 задач, 3 мс) | частично: фильтров в интерфейсе нет |
-| FR-05 | — | — | нет: экспорт не делали |
+| FR-05 | `src/export/csv.js`, `/api/export/tasks.csv`, `/api/export/facts.md` | `test/export/csv.test.js`, `test/server/export.test.js` | готово |
 
 ## 2. Сводка и приоритет
 
@@ -22,7 +22,7 @@
 | FR-07 | `src/domain/priority.js` | `test/domain/priority.test.js` — 15 эталонов | готово |
 | FR-08 | счётчики `overdue`/`burning` | `test/server/onepager.test.js` | готово |
 | FR-09 | `reasonOf` в `priority.js`, причина на карточке | `test/domain/priority.test.js` | готово |
-| FR-10 | — | — | нет: правила зашиты в код |
+| FR-10 | `normalizeOrder` в `src/domain/priority.js`, `AA_SETTINGS`/`настройки.json`, `priorityOrder` | `test/domain/priority.test.js`, `test/server/priority-config.test.js` | готово |
 
 ## 3. Черновики ответов
 
@@ -99,9 +99,9 @@
 
 ## 9. Итог
 
-- **Готово:** 36 требований из 53.
-- **Частично:** 13.
-- **Нет:** 4.
+- **Готово:** 38 требований из 53.
+- **Частично:** 14.
+- **Нет:** 1.
 
 **Чего не хватает больше всего** (по влиянию на приёмку):
 

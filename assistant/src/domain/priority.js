@@ -29,19 +29,35 @@ export function dueDate(task, now) {
   return null
 }
 
-export function rank(task, now) {
-  if (task.status === 'закрыта') return RANK.CLOSED
-  if (task.escalation) return RANK.ESCALATION
+export const DEFAULT_ORDER = ['escalation', 'due', 'manager', 'hasDue', 'other']
 
-  const due = dueDate(task, now)
-  if (due && due <= localDate(now)) return RANK.DUE_SOON
-  if (task.fromManager) return RANK.MANAGER
-  if (due) return RANK.HAS_DUE
-  return RANK.OTHER
+export function normalizeOrder(order) {
+  if (!Array.isArray(order)) return DEFAULT_ORDER
+  const known = order.filter(group => DEFAULT_ORDER.includes(group))
+  const rest = DEFAULT_ORDER.filter(group => !known.includes(group))
+  return [...known, ...rest]
 }
 
-export function compareTasks(a, b, now) {
-  const byRank = rank(a, now) - rank(b, now)
+export function groupOf(task, now) {
+  if (task.status === 'закрыта') return 'closed'
+  if (task.escalation) return 'escalation'
+  const due = dueDate(task, now)
+  if (due && due <= localDate(now)) return 'due'
+  if (task.fromManager) return 'manager'
+  if (due) return 'hasDue'
+  return 'other'
+}
+
+export function rank(task, now, options = {}) {
+  const group = groupOf(task, now)
+  if (group === 'closed') return RANK.CLOSED
+  const order = options.order ? normalizeOrder(options.order) : DEFAULT_ORDER
+  const index = order.indexOf(group)
+  return index === -1 ? order.length : index
+}
+
+export function compareTasks(a, b, now, options = {}) {
+  const byRank = rank(a, now, options) - rank(b, now, options)
   if (byRank !== 0) return byRank
   const dueA = dueDate(a, now) ?? '9999-12-31'
   const dueB = dueDate(b, now) ?? '9999-12-31'

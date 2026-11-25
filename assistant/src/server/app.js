@@ -9,6 +9,7 @@ import { parseDrawio } from '../parse/drawio.js'
 import { compareIntegrations } from '../diagrams/compare.js'
 import { loadDiagram } from '../parse/sources.js'
 import { diagramState } from '../diagrams/freshness.js'
+import { tasksToCsv, factsToMarkdown } from '../export/csv.js'
 import { buildReview } from '../review/build.js'
 import { unansweredFrom } from '../email/model.js'
 
@@ -68,7 +69,8 @@ function readJson(request, limit = 1_000_000) {
   })
 }
 
-export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions, drafts, plugins, integrity = 'нет манифеста' }) {
+export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions, drafts, plugins, integrity = 'нет манифеста', priorityOrder }) {
+  const priorityOptions = priorityOrder ? { order: priorityOrder } : {}
   return async (request, response) => {
     const url = new URL(request.url, 'http://127.0.0.1')
     const isWrite = request.method === 'POST'
@@ -88,8 +90,8 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
       const ranked = store
         .all()
         .filter(task => task.status !== 'закрыта')
-        .map(task => ({ ...task, rank: rank(task, now), reason: reasonOf(task, now) }))
-        .sort((a, b) => compareTasks(a, b, now))
+        .map(task => ({ ...task, rank: rank(task, now, priorityOptions), reason: reasonOf(task, now) }))
+        .sort((a, b) => compareTasks(a, b, now, priorityOptions))
       const counts = {
         today: ranked.filter(task => task.rank <= 1).length,
         overdue: ranked.filter(task => {
@@ -272,8 +274,8 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
           const due = dueDate(task, now)
           return Boolean(due) && due <= today
         })
-        .map(task => ({ ...task, rank: rank(task, now), reason: reasonOf(task, now) }))
-        .sort((a, b) => compareTasks(a, b, now))
+        .map(task => ({ ...task, rank: rank(task, now, priorityOptions), reason: reasonOf(task, now) }))
+        .sort((a, b) => compareTasks(a, b, now, priorityOptions))
       const fromEmail = email ? unansweredFrom(email.all(), myAddresses) : []
       const unanswered = fromEmail.length
         ? fromEmail.map(message => ({
@@ -285,10 +287,10 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
             dueAt: null
           }))
         : open.filter(task => task.source === 'письмо' && task.answered !== true)
-        .map(task => ({ ...task, rank: rank(task, now), reason: reasonOf(task, now) }))
-        .sort((a, b) => compareTasks(a, b, now))
+        .map(task => ({ ...task, rank: rank(task, now, priorityOptions), reason: reasonOf(task, now) }))
+        .sort((a, b) => compareTasks(a, b, now, priorityOptions))
       const pages = cafo ? cafo.list() : []
-      const resume = store.parked().map(task => ({ ...task, rank: rank(task, now), reason: reasonOf(task, now) }))
+      const resume = store.parked().map(task => ({ ...task, rank: rank(task, now, priorityOptions), reason: reasonOf(task, now) }))
       send(response, 200, {
         cafo: pages,
         unanswered,
@@ -367,6 +369,26 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
       } catch (error) {
         send(response, 404, { error: error.message })
       }
+      return
+    }
+    if (url.pathname === '/api/export/tasks.csv') {
+      const csv = tasksToCsv(store.all())
+      response.writeHead(200, {
+        'content-type': 'text/csv; charset=utf-8',
+        'content-disposition': 'attachment; filename="tasks.csv"',
+        'cache-control': 'no-store'
+      })
+      response.end(csv)
+      return
+    }
+    if (url.pathname === '/api/export/facts.md') {
+      const markdown = factsToMarkdown(facts ? facts.all() : [])
+      response.writeHead(200, {
+        'content-type': 'text/markdown; charset=utf-8',
+        'content-disposition': 'attachment; filename="facts.md"',
+        'cache-control': 'no-store'
+      })
+      response.end(markdown)
       return
     }
     if (url.pathname === '/api/decisions' && !isWrite) {
@@ -519,8 +541,8 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
   }
 }
 
-export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions, drafts, plugins, integrity, host = '127.0.0.1' }) {
-  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail, bridge, decisions, drafts, plugins, integrity }))
+export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions, drafts, plugins, integrity, priorityOrder, host = '127.0.0.1' }) {
+  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail, bridge, decisions, drafts, plugins, integrity, priorityOrder }))
   server.host = host
   return server
 }
