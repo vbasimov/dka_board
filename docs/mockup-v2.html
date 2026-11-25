@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Ассистент архитектора — макет v2</title>
+<style>
+  :root{
+    /* акцент — единственный */
+    --accent:#1d4ed8;
+    --accent-ink:#ffffff;
+    /* поверхности */
+    --bg:#f3f4f6;
+    --surface:#ffffff;
+    --surface-2:#f8f9fb;
+    --line:#dde1e6;
+    --line-strong:#c7ccd3;
+    /* три уровня текста */
+    --ink:#12161b;      /* первичный */
+    --ink-2:#475569;    /* вторичный */
+    --ink-3:#5f6b7a;    /* подписи / мета */
+    /* статусные цвета — не акцент, всегда с текстовой подписью */
+    --ok-ink:#166534;   --ok-bg:#e9f6ee;  --ok-bd:#bfe5cc;
+    --warn-ink:#92400e; --warn-bg:#fdf1dc; --warn-bd:#f0d9a8;
+    --bad-ink:#9f1c1c;  --bad-bg:#fbe8e6;  --bad-bd:#f0c4c0;
+    /* ритм 4/8/12 */
+    --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    color:var(--ink); background:var(--bg);
+  }
+  h1,h2,h3{margin:0}
+  button,input{font:inherit}
+
+  /* ---------- фокус: всегда виден с клавиатуры, не мешает мыши ---------- */
+  button:focus, a:focus, input:focus, [tabindex]:focus{
+    outline:2px solid var(--accent); outline-offset:2px; border-radius:4px;
+  }
+  button:focus:not(:focus-visible), a:focus:not(:focus-visible), input:focus:not(:focus-visible){
+    outline:none;
+  }
+
+  /* ---------- шапка: заголовок + переключатель экранов ---------- */
+  header{background:var(--surface); border-bottom:1px solid var(--line)}
+  .head-top{display:flex; align-items:baseline; justify-content:space-between; padding:10px var(--s5) 6px}
+  .head-top h1{font-size:15px; font-weight:600}
+  .head-top .meta{font-size:12px; color:var(--ink-3)}
+  nav.tabs{display:flex; gap:2px; padding:0 var(--s5); border-top:1px solid var(--line); overflow-x:auto}
+  nav.tabs button{
+    appearance:none; background:none; border:0; border-bottom:2px solid transparent;
+    padding:10px 14px; font-size:13px; color:var(--ink-2); cursor:pointer; white-space:nowrap;
+  }
+  nav.tabs button:hover{color:var(--ink)}
+  nav.tabs button[aria-current="true"]{color:var(--ink); font-weight:600; border-bottom-color:var(--accent)}
+
+  main{padding:var(--s5); max-width:1340px; margin:0 auto}
+  .panel[hidden]{display:none}
+  .page-context{font-size:12px; color:var(--ink-3); margin-bottom:var(--s3)}
+  h2.page-title{font-size:17px; font-weight:600; margin-bottom:var(--s4)}
+
+  /* ---------- общие строительные блоки ---------- */
+  .panel-box{background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:var(--s3)}
+  .row{display:flex; align-items:center; gap:var(--s2); flex-wrap:wrap}
+  .muted{color:var(--ink-2); font-size:13px}
+  .faint{color:var(--ink-3); font-size:12px}
+
+  .badge{display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; padding:2px 8px; border-radius:4px; border:1px solid transparent; white-space:nowrap}
+  .badge.ok{color:var(--ok-ink); background:var(--ok-bg); border-color:var(--ok-bd)}
+  .badge.warn{color:var(--warn-ink); background:var(--warn-bg); border-color:var(--warn-bd)}
+  .badge.bad{color:var(--bad-ink); background:var(--bad-bg); border-color:var(--bad-bd)}
+
+  .btn{background:var(--accent); color:var(--accent-ink); border:0; border-radius:4px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer}
+  .btn:hover{background:#1942b8}
+  .btn:disabled{background:#9fb2e0; cursor:default}
+  .btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--line-strong)}
+  .btn.ghost:hover{background:var(--surface-2)}
+  .btn.sm{padding:5px 10px; font-size:12.5px; border-radius:4px}
+  .kbd{display:inline-block; min-width:14px; text-align:center; font-size:11px; font-weight:700; color:var(--ink-2); background:var(--surface-2); border:1px solid var(--line); border-radius:3px; padding:0 4px; margin-right:6px}
+
+  .banner{border-radius:6px; padding:var(--s3); font-size:13px; margin-bottom:var(--s4); border:1px solid var(--warn-bd); background:var(--warn-bg); color:var(--warn-ink)}
+  .banner.bad{border-color:var(--bad-bd); background:var(--bad-bg); color:var(--bad-ink)}
+
+  .empty{padding:var(--s4) var(--s3); text-align:left}
+  .empty p{margin:0 0 var(--s3); font-size:13px; color:var(--ink-2)}
+
+  /* ---------- Сводка: счётная полоса ---------- */
+  .statbar{display:grid; grid-template-columns:repeat(4,1fr); gap:var(--s3); margin-bottom:var(--s3)}
+  .stat{background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:var(--s3) var(--s4)}
+  .stat b{display:block; font-size:30px; line-height:1.1; font-weight:700; letter-spacing:-0.01em}
+  .stat span{display:block; margin-top:4px; font-size:13px; color:var(--ink-2)}
+  .stat.is-bad b{color:var(--bad-ink)}
+  .stat.is-warn b{color:var(--warn-ink)}
+
+  /* ---------- Сводка: три колонки ---------- */
+  .cols3{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--s3); margin-bottom:var(--s3); align-items:start}
+  .col{background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:var(--s3); min-width:0}
+  .col.look-closer{border-left:3px solid var(--warn-bd)}
+  .col-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:2px}
+  .col-head h3{font-size:14px; font-weight:600}
+  .col-head .count{font-size:12px; color:var(--ink-3)}
+  .lines{display:flex; flex-direction:column}
+  .line{display:flex; align-items:center; gap:var(--s2); min-height:42px; padding:0}
+  .line + .line{border-top:1px solid var(--line)}
+  .line-main{flex:1; min-width:0}
+  .line-title{font-size:14px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .line-sub{font-size:12px; color:var(--ink-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .line-time{font-size:12px; color:var(--ink-3); flex-shrink:0}
+  .show-all{display:block; margin-top:var(--s2); font-size:12.5px; color:var(--accent); text-decoration:none; background:none; border:0; padding:0; cursor:pointer; font-family:inherit}
+  .show-all:hover{text-decoration:underline}
+
+  .continue .line{align-items:center}
+  .continue .line-sub{overflow:visible; white-space:normal}
+
+  /* ---------- таблицы: плотные, строки 40-44px ---------- */
+  table{width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--line); border-radius:6px; overflow:hidden}
+  caption{display:none}
+  th,td{text-align:left; padding:11px 12px; font-size:14px; border-bottom:1px solid var(--line); line-height:20px}
+  th{background:var(--surface-2); color:var(--ink-2); font-weight:600; font-size:12.5px; text-transform:none}
+  tr:last-child td{border-bottom:0}
+  tr[data-hidden="true"]{display:none}
+
+  /* ---------- карточка запроса ---------- */
+  .split2{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); gap:var(--s4)}
+  .mail-meta{font-size:13px; color:var(--ink-2); margin-bottom:var(--s3)}
+  .mail-body{background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:var(--s4); font-size:14px; line-height:1.6; white-space:pre-wrap}
+  .draft{background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:var(--s4); font-size:14px; line-height:1.6; white-space:pre-wrap; margin-bottom:var(--s3)}
+  .src{display:flex; align-items:center; gap:var(--s2); min-height:42px; font-size:13px}
+  .src + .src{border-top:1px solid var(--line)}
+  .src .text{flex:1; min-width:0; color:var(--ink)}
+  .src a.open{font-size:12.5px; color:var(--accent); text-decoration:none; flex-shrink:0}
+  .src a.open:hover{text-decoration:underline}
+
+  /* ---------- проверка фактов ---------- */
+  .quiz-wrap{max-width:620px}
+  .quiz-progress{font-size:13px; color:var(--ink-2); margin-bottom:var(--s3)}
+  .quiz-card{background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:var(--s5)}
+  .quiz-claim{font-size:16px; font-weight:600; margin-bottom:var(--s2); line-height:1.4}
+  .quiz-source{font-size:13px; color:var(--ink-2); margin-bottom:var(--s4)}
+  .quiz-actions{display:flex; gap:var(--s2); flex-wrap:wrap; margin-bottom:var(--s3)}
+  .quiz-hint{font-size:12px; color:var(--ink-3)}
+
+  /* ---------- схемы ---------- */
+  h3.sub{font-size:14px; font-weight:600; margin:var(--s5) 0 var(--s3)}
+  .col ul, .empty ul{margin:0; padding:0; list-style:none}
+  .col ul li{font-size:13px; padding:9px 0; color:var(--ink)}
+  .col ul li + li{border-top:1px solid var(--line)}
+
+  @media (max-width:1300px){
+    .cols3{grid-template-columns:1fr}
+    .split2{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-top">
+    <h1>Ассистент архитектора</h1>
+    <span class="meta">офлайн · без выхода в сеть · данные вымышленные · макет v2</span>
+  </div>
+  <nav class="tabs" id="nav" aria-label="Разделы">
+    <button data-p="summary" aria-current="true">Сводка</button>
+    <button data-p="quiz">Проверка фактов</button>
+    <button data-p="card">Карточка запроса</button>
+    <button data-p="cafo">КАФО</button>
+    <button data-p="diagrams">Схемы</button>
+    <button data-p="tasks">Задачи</button>
+    <button data-p="review">Ревью</button>
+    <button data-p="settings">Настройки</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ====================== 1. СВОДКА ====================== -->
+  <section class="panel" id="p-summary">
+    <div class="page-context">Сводка · среда, 25 ноября 2026</div>
+
+    <div class="statbar">
+      <div class="stat is-bad"><b>4</b><span>нужны решение или ответ сегодня</span></div>
+      <div class="stat is-bad"><b>2</b><span>просрочено</span></div>
+      <div class="stat is-warn"><b>3</b><span>решения не в КАФО</span></div>
+      <div class="stat"><b>6</b><span>проверить фактов</span></div>
+    </div>
+
+    <div class="cols3">
+      <div class="col">
+        <div class="col-head"><h3>Статусы КАФО</h3><span class="count">4 страницы</span></div>
+        <div class="lines">
+          <div class="line">
+            <div class="line-main">
+              <div class="line-title">Платежи</div>
+              <div class="line-sub">версия 14 · кэш версии 12</div>
+            </div>
+            <span class="badge warn">устарело</span>
+          </div>
+          <div class="line">
+            <div class="line-main">
+              <div class="line-title">Биллинг</div>
+              <div class="line-sub">версия 11 · Confluence недоступен</div>
+            </div>
+            <span class="badge bad">не сверено</span>
+          </div>
+          <div class="line">
+            <div class="line-main">
+              <div class="line-title">Расчёты</div>
+              <div class="line-sub">версия 8 · сверено сегодня</div>
+            </div>
+            <span class="badge ok">свежо</span>
+          </div>
+          <div class="line">
+            <div class="line-main">
+              <div class="line-title">Антифрод</div>
+              <div class="line-sub">версия 5 · сверено сегодня</div>
+            </div>
+            <span class="badge ok">свежо</span>
+          </div>
+        </div>
+        <button class="show-all" data-goto="cafo">Показать все страницы КАФО</button>
+      </div>
+
+      <div class="col">
+        <div class="col-head"><h3>Неотвеченные сообщения</h3><span class="count">3</span></div>
+        <div class="lines">
+          <div class="line">
+            <div class="line-main">
+              <div class="line-title">Антифрод — «Нужна интеграция к релизу»</div>
+              <div class="line-sub">24 часа без ответа</div>
+            </div>
+            <button class="btn sm ghost" data-goto="card">Ответить</button>
+          </div>
+          <div class="line">
+            <div class="line-main">
+              <div class="line-title">Аналитики — «Забыли про интеграцию с биллингом»</div>
+              <div class="line-sub">2 дня без ответа</div>
+            </div>
+            <button class="btn sm ghost" data-goto="card">Ответить</button>
+          </div>
+          <div class="line">
+            <div class="line-main">
+              <div class="line-title">Безопасность — «Новые требования к журналированию»</div>
+              <div class="line-sub">1 день без ответа</div>
+            </div>
+            <button class="btn sm ghost" data-goto="card">Ответить</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="col-head"><h3>Горящие сроки сегодня</h3><span class="count">3</span></div>
+        <div class="lines">
+          <div class="line">
+            <div class="line-main">
+              <div class="line-title">Согласовать интеграцию платежей с антифродом</div>
+              <div class="line-sub">эскалация: повторное письмо руководителя антифрода</div>
+            </div>
+            <span class="line-time">18:00</span>
+          </div>
+          <div class="line">
+            <div class="line-main">
+              <div class="line-title">Зафиксировать решение по очереди событий в КАФО</div>
+              <div class="line-sub">висит 4 дня, нужно до комитета в четверг</div>
+            </div>
+            <span class="line-time">17:00</span>
+          </div>
+          <div class="line">
+            <div class="line-main">
+              <div class="line-title">Ответить по журналированию безопасности</div>
+              <div class="line-sub">поручение руководителя</div>
+            </div>
+            <span class="line-time">16:00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-box continue">
+      <div class="col-head"><h3>Продолжить</h3><span class="count">3 незавершённых</span></div>
+      <div class="lines">
+        <div class="line">
+          <div class="line-main">
+            <div class="line-title">Черновик ответа смежной команде по расчётам</div>
+            <div class="line-sub">следующий шаг: вставить ссылку на схему «Расчёты», версия 4</div>
+          </div>
+          <button class="btn sm ghost" data-goto="card">Вернуться</button>
+        </div>
+        <div class="line">
+          <div class="line-main">
+            <div class="line-title">Разбор расхождения схемы «Расчёты» с КАФО</div>
+            <div class="line-sub">следующий шаг: решить, элемент «BI» — внешняя система или компонент</div>
+          </div>
+          <button class="btn sm ghost" data-goto="diagrams">Вернуться</button>
+        </div>
+        <div class="line">
+          <div class="line-main">
+            <div class="line-title">Ревью недели</div>
+            <div class="line-sub">следующий шаг: дописать раздел «что не учли»</div>
+          </div>
+          <button class="btn sm ghost" data-goto="review">Вернуться</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== 2. ПРОВЕРКА ФАКТОВ ====================== -->
+  <section class="panel" id="p-quiz" hidden>
+    <h2 class="page-title">Проверка фактов</h2>
+    <div class="quiz-wrap">
+      <div class="quiz-progress" id="quiz-progress"></div>
+      <div id="quiz-slot"></div>
+    </div>
+  </section>
+
+  <!-- ====================== 3. КАРТОЧКА ЗАПРОСА ====================== -->
+  <section class="panel" id="p-card" hidden>
+    <h2 class="page-title">Карточка запроса</h2>
+    <div class="split2">
+      <div>
+        <div class="mail-meta">От антифрода · 25.11.2026, 09:12 · срок сегодня 18:00 · ждёт: архитектор ФО Риски</div>
+        <div class="mail-body">Коллеги, добрый день.
+
+К релизу в пятницу нужна интеграция сервиса платежей с антифродом по событиям отмены и возврата. Подскажите, как это согласовать и какие требования безопасности нужно учесть по хранению журналов.
+
+Ответ нужен сегодня до 18:00, иначе переносим релиз.</div>
+        <p class="faint" style="margin-top:12px">Приоритет выставлен по признакам: эскалация (повторное письмо), срок сегодня, поручение руководителя антифрода.</p>
+      </div>
+      <div>
+        <div class="banner">Один из источников устарел: КАФО «Платежи» в кэше версии 12, в Confluence уже версия 14 (2 правки после кэша). Проверьте перед отправкой.</div>
+        <h3 class="sub" style="margin-top:0">Черновик ответа</h3>
+        <div class="draft" id="draft-text">Коллеги, добрый день.
+
+Интеграция по событиям уже описана в архитектуре: сервис платежей передаёт события в Kafka, антифрод подписывается на топик events.v2, включая отмены и возвраты. Решение зафиксировано 20.11, версия 12 (требует подтверждения — в КАФО уже версия 14).
+
+По безопасности: с 24.11 действует требование хранить журналы решений один год; источник не сверен, нужна проверка.
+
+Предлагаю согласовать на комитете в четверг и обновить КАФО до релиза.</div>
+        <div class="src">
+          <span class="badge warn">устарело</span>
+          <span class="text">КАФО «Платежи», версия 12 в кэше — в хранилище уже 14</span>
+          <a class="open" href="#" data-goto="cafo">Открыть источник</a>
+        </div>
+        <div class="src">
+          <span class="badge ok">свежо</span>
+          <span class="text">Схема «Платежи», вложение страницы, версия 4, сверено сегодня</span>
+          <a class="open" href="#" data-goto="diagrams">Открыть источник</a>
+        </div>
+        <div class="src">
+          <span class="badge bad">не сверено</span>
+          <span class="text">Требование безопасности от 24.11 — источник недоступен</span>
+          <a class="open" href="#" data-goto="cafo">Открыть источник</a>
+        </div>
+        <div class="row" style="margin-top:var(--s4)">
+          <button class="btn" id="copy-draft">Скопировать черновик</button>
+          <button class="btn ghost">Править</button>
+          <button class="btn ghost">Отложить</button>
+        </div>
+        <p class="faint" style="margin-top:8px">Отправка только вручную, из почтовой программы. Эта программа писем не отправляет.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== 4. КАФО ====================== -->
+  <section class="panel" id="p-cafo" hidden>
+    <h2 class="page-title">КАФО</h2>
+    <div class="row" style="margin-bottom:var(--s3); justify-content:space-between">
+      <label class="row" style="gap:6px"><input type="checkbox" id="cafo-filter"> <span class="muted">Только устаревшие</span></label>
+      <span class="faint" id="cafo-count">Показано 4 из 4</span>
+    </div>
+    <table>
+      <thead><tr><th>Страница</th><th>Область</th><th>Версия</th><th>Сверено</th><th>Состояние</th><th></th></tr></thead>
+      <tbody id="cafo-body">
+        <tr data-status="warn">
+          <td>Платежи</td><td>Платежи</td><td>14</td><td>сегодня</td>
+          <td><span class="badge warn">устарело</span></td>
+          <td><button class="btn sm ghost" data-refresh>Обновить</button></td>
+        </tr>
+        <tr data-status="ok">
+          <td>Расчёты</td><td>Расчёты</td><td>8</td><td>сегодня</td>
+          <td><span class="badge ok">свежо</span></td>
+          <td><button class="btn sm ghost" data-refresh>Обновить</button></td>
+        </tr>
+        <tr data-status="ok">
+          <td>Антифрод</td><td>Риски</td><td>5</td><td>вчера</td>
+          <td><span class="badge ok">свежо</span></td>
+          <td><button class="btn sm ghost" data-refresh>Обновить</button></td>
+        </tr>
+        <tr data-status="bad">
+          <td>Биллинг</td><td>Биллинг</td><td>11</td><td>3 дня назад</td>
+          <td><span class="badge bad">не сверено</span></td>
+          <td><button class="btn sm ghost" data-refresh>Обновить</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ====================== 5. СХЕМЫ ====================== -->
+  <section class="panel" id="p-diagrams" hidden>
+    <h2 class="page-title">Схемы</h2>
+    <p class="muted" style="margin:0 0 var(--s3)">Диаграммы draw.io: файлы и вложения страниц КАФО. Программа только читает, не меняет.</p>
+    <table>
+      <thead><tr><th>Схема</th><th>Источник</th><th>Версия</th><th>Разобрана</th></tr></thead>
+      <tbody>
+        <tr><td>Платежи</td><td>вложение страницы «Платежи»</td><td>4</td><td>сегодня</td></tr>
+        <tr><td>Расчёты</td><td>файл</td><td>4</td><td>сегодня</td></tr>
+        <tr><td>Антифрод, поток событий</td><td>вложение страницы «Антифрод»</td><td>2</td><td>вчера</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub">Расхождения с КАФО · схема «Расчёты»</h3>
+    <div class="cols3">
+      <div class="col">
+        <div class="col-head"><h3>Есть в схеме, нет в КАФО</h3></div>
+        <ul>
+          <li>Расчёты → Биллинг, связь «итоговые суммы»</li>
+        </ul>
+      </div>
+      <div class="col">
+        <div class="col-head"><h3>Есть в КАФО, нет в схеме</h3></div>
+        <ul>
+          <li>Расчёты → Хранилище отчётов</li>
+        </ul>
+      </div>
+      <div class="col look-closer">
+        <div class="col-head"><h3>Требует вашего взгляда</h3></div>
+        <ul>
+          <li>Связь без начала и конца, подпись «сверка» — участники не определены.</li>
+          <li>Элемент «BI» — внешняя система или внутренний компонент, признаков недостаточно.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== 6. ЗАДАЧИ ====================== -->
+  <section class="panel" id="p-tasks" hidden>
+    <h2 class="page-title">Задачи</h2>
+    <p class="muted" style="margin:0 0 var(--s3)">Всё, что пришло из писем, файлов, схем, Jira или добавлено вручную. Ничего не удаляется — закрытые уходят в архив.</p>
+    <table>
+      <thead><tr><th>Задача</th><th>Источник</th><th>Срок</th><th>Состояние</th></tr></thead>
+      <tbody>
+        <tr><td>Согласовать интеграцию платежей с антифродом</td><td>письмо, 25.11</td><td>сегодня</td><td>в работе</td></tr>
+        <tr><td>Зафиксировать решение по очереди событий</td><td>протокол, 21.11</td><td>четверг</td><td>не начата</td></tr>
+        <tr><td>Обновить КАФО после требования безопасности</td><td>письмо, 24.11</td><td>среда</td><td>не начата</td></tr>
+        <tr><td>Разобрать расхождение схемы «Расчёты»</td><td>схема, версия 4</td><td>пятница</td><td>не начата</td></tr>
+        <tr><td>Ответить на запрос по расчётам</td><td>письмо, 24.11</td><td>завтра</td><td>черновик готов</td></tr>
+      </tbody>
+    </table>
+    <div class="row" style="margin-top:var(--s3)">
+      <button class="btn">Новая задача</button>
+      <button class="btn ghost">Добавить из письма</button>
+      <span class="faint">быстрая форма: Ctrl+Alt+N</span>
+    </div>
+  </section>
+
+  <!-- ====================== 7. РЕВЬЮ ====================== -->
+  <section class="panel" id="p-review" hidden>
+    <h2 class="page-title">Ревью недели</h2>
+    <div class="row" style="margin-bottom:var(--s3)">
+      <button class="btn">Собрать ревью</button>
+      <span class="faint">отчёт за 18–24 ноября сохранён в папке данных</span>
+    </div>
+    <div class="panel-box" style="margin-bottom:var(--s2)">
+      <h3 class="sub" style="margin-top:0">Что произошло</h3>
+      <ul>
+        <li>Пять запросов на обоснование, два — про расчёты.</li>
+        <li>Пришли два новых требования безопасности.</li>
+        <li>КАФО «Платежи» обновлялась дважды.</li>
+      </ul>
+    </div>
+    <div class="panel-box" style="margin-bottom:var(--s2)">
+      <h3 class="sub" style="margin-top:0">Что не учли</h3>
+      <ul>
+        <li>Интеграция с биллингом есть в схеме, но отсутствует в КАФО.</li>
+        <li>Требование хранения журналов не отражено ни в одном решении.</li>
+        <li>Решение по очереди событий висит 4 дня без фиксации.</li>
+      </ul>
+    </div>
+    <p class="faint">Отчёт — подсказка программы и требует проверки человеком. Решение всегда за вами.</p>
+  </section>
+
+  <!-- ====================== 8. НАСТРОЙКИ ====================== -->
+  <section class="panel" id="p-settings" hidden>
+    <h2 class="page-title">Настройки</h2>
+    <table>
+      <tbody>
+        <tr><th>Папка для данных</th><td>Документы\Ассистент\Данные</td></tr>
+        <tr><th>Путь к gigacode</th><td>найден автоматически</td></tr>
+        <tr><th>Папка с выгрузкой КАФО</th><td>Документы\Ассистент\КАФО</td></tr>
+        <tr><th>Источники задач</th><td>почта (вручную), папки с файлами, Jira</td></tr>
+        <tr><th>Частота сверки версий</th><td>при каждом открытии карточки</td></tr>
+        <tr><th>Число функциональных областей</th><td>4</td></tr>
+        <tr><th>Плагины</th><td>не установлены</td></tr>
+      </tbody>
+    </table>
+    <div class="row" style="margin-top:var(--s3)">
+      <button class="btn">Проверить</button>
+      <button class="btn ghost">Открыть папку данных</button>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- переключение экранов ---------- */
+  var nav = document.getElementById('nav');
+  var navButtons = Array.prototype.slice.call(nav.querySelectorAll('button'));
+  var panels = Array.prototype.slice.call(document.querySelectorAll('.panel'));
+
+  function show(id){
+    panels.forEach(function(p){ p.hidden = (p.id !== 'p-' + id) });
+    navButtons.forEach(function(b){ b.setAttribute('aria-current', String(b.dataset.p === id)) });
+  }
+  navButtons.forEach(function(b){ b.addEventListener('click', function(){ show(b.dataset.p) }) });
+  document.querySelectorAll('[data-goto]').forEach(function(el){
+    el.addEventListener('click', function(ev){ ev.preventDefault(); show(el.dataset.goto) });
+  });
+  show('summary');
+
+  /* ---------- КАФО: фильтр "только устаревшие" + обновление строки ---------- */
+  var cafoFilter = document.getElementById('cafo-filter');
+  var cafoBody = document.getElementById('cafo-body');
+  var cafoCount = document.getElementById('cafo-count');
+  var cafoRows = Array.prototype.slice.call(cafoBody.querySelectorAll('tr'));
+
+  function applyCafoFilter(){
+    var onlyStale = cafoFilter.checked;
+    var visible = 0;
+    cafoRows.forEach(function(tr){
+      var stale = tr.dataset.status !== 'ok';
+      var show = onlyStale ? stale : true;
+      tr.dataset.hidden = show ? 'false' : 'true';
+      if (show) visible++;
+    });
+    cafoCount.textContent = 'Показано ' + visible + ' из ' + cafoRows.length;
+  }
+  cafoFilter.addEventListener('change', applyCafoFilter);
+  applyCafoFilter();
+
+  cafoBody.addEventListener('click', function(ev){
+    var btn = ev.target.closest('[data-refresh]');
+    if (!btn) return;
+    var tr = btn.closest('tr');
+    tr.dataset.status = 'ok';
+    tr.children[3].textContent = 'сейчас';
+    tr.children[4].innerHTML = '<span class="badge ok">свежо</span>';
+    btn.textContent = 'Обновлено';
+    btn.disabled = true;
+    applyCafoFilter();
+  });
+
+  /* ---------- Карточка запроса: копирование черновика ---------- */
+  var copyBtn = document.getElementById('copy-draft');
+  var draftText = document.getElementById('draft-text');
+  copyBtn.addEventListener('click', function(){
+    var text = draftText.textContent;
+    function done(ok){
+      copyBtn.textContent = ok ? 'Скопировано' : 'Выделите и скопируйте вручную';
+      setTimeout(function(){ copyBtn.textContent = 'Скопировать черновик' }, 1400);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function(){ done(true) }, function(){ fallbackCopy() });
+    } else {
+      fallbackCopy();
+    }
+    function fallbackCopy(){
+      try{
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        done(ok);
+      }catch(e){ done(false) }
+    }
+  });
+
+  /* ---------- Проверка фактов: карточка за карточкой, остаток, клавиши 1/2/3 ---------- */
+  var facts = [
+    { claim: 'Сервис платежей передаёт события в антифрод через Kafka, топик events.v2.', source: 'КАФО «Платежи», версия 14, сверено сегодня' },
+    { claim: 'Расчёты получают итоговые суммы из биллинга напрямую, без очереди событий.', source: 'КАФО «Расчёты», версия 8, сверено сегодня' },
+    { claim: 'Антифрод обязан хранить журналы решений не менее одного года.', source: 'Требование безопасности от 24.11, не сверено' },
+    { claim: 'Биллинг выставляет отдельный SLA для расчётов — 200 мс на ответ.', source: 'КАФО «Биллинг», версия 11, сверено 3 дня назад' },
+    { claim: 'Очередь событий — одна на домен, без шардирования по клиентам.', source: 'Протокол встречи, 21.11' },
+    { claim: 'Антифрод подписан на все события платежей, включая отмены и возвраты.', source: 'КАФО «Антифрод», версия 5, сверено сегодня' }
+  ];
+  var factIndex = 0;
+  var quizSlot = document.getElementById('quiz-slot');
+  var quizProgress = document.getElementById('quiz-progress');
+
+  function renderQuiz(){
+    var remaining = facts.length - factIndex;
+    if (remaining <= 0) {
+      quizProgress.textContent = 'Проверено 0 из ' + facts.length;
+      quizSlot.innerHTML =
+        '<div class="quiz-card empty">' +
+          '<p><b>Все факты на сегодня проверены.</b> Пропущенные факты вернутся не раньше завтра.</p>' +
+          '<button class="btn" data-goto="summary">Вернуться в сводку</button>' +
+        '</div>';
+      wireGoto(quizSlot);
+      return;
+    }
+    quizProgress.textContent = 'Осталось проверить: ' + remaining + ' из ' + facts.length;
+    var f = facts[factIndex];
+    quizSlot.innerHTML =
+      '<div class="quiz-card">' +
+        '<div class="quiz-claim">' + escapeHtml(f.claim) + '</div>' +
+        '<div class="quiz-source">Источник: ' + escapeHtml(f.source) + '</div>' +
+        '<div class="quiz-actions">' +
+          '<button class="btn" data-verdict="confirm"><span class="kbd">1</span>Подтвердить</button>' +
+          '<button class="btn ghost" data-verdict="unreliable"><span class="kbd">2</span>Недостоверно</button>' +
+          '<button class="btn ghost" data-verdict="skip"><span class="kbd">3</span>Пропустить</button>' +
+        '</div>' +
+        '<div class="quiz-hint">Пропущенный факт вернётся не раньше следующего дня.</div>' +
+      '</div>';
+  }
+  function wireGoto(root){
+    root.querySelectorAll('[data-goto]').forEach(function(el){
+      el.addEventListener('click', function(ev){ ev.preventDefault(); show(el.dataset.goto) });
+    });
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+  }
+  quizSlot.addEventListener('click', function(ev){
+    var btn = ev.target.closest('[data-verdict]');
+    if (!btn) return;
+    factIndex++;
+    renderQuiz();
+  });
+  document.addEventListener('keydown', function(ev){
+    var panel = document.getElementById('p-quiz');
+    if (panel.hidden) return;
+    if (ev.key === '1') document.querySelector('[data-verdict="confirm"]') && document.querySelector('[data-verdict="confirm"]').click();
+    if (ev.key === '2') document.querySelector('[data-verdict="unreliable"]') && document.querySelector('[data-verdict="unreliable"]').click();
+    if (ev.key === '3') document.querySelector('[data-verdict="skip"]') && document.querySelector('[data-verdict="skip"]').click();
+  });
+  renderQuiz();
+
+})();
+</script>
+</body>
+</html>

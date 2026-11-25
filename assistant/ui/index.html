@@ -8,94 +8,92 @@
 </head>
 <body>
   <header>
-    <h1>Ассистент архитектора</h1>
-    <span class="note">локально, без выхода в сеть</span>
-  </header>
-  <div class="layout">
+    <div class="head-top">
+      <h1>Ассистент архитектора</h1>
+      <span class="note">офлайн · без выхода в сеть</span>
+    </div>
     <nav id="nav" aria-label="Разделы">
       <button data-p="summary" aria-current="true">Сводка</button>
       <button data-p="today">Сегодня</button>
-      <button data-p="tasks">Задачи</button>
+      <button data-p="quiz">Проверка фактов</button>
+      <button data-p="card">Карточка запроса</button>
       <button data-p="cafo">КАФО</button>
       <button data-p="diagrams">Схемы</button>
-      <button data-p="facts">Факты и решения</button>
-      <button data-p="quiz">Проверка фактов</button>
-      <button data-p="review">Ревью недели</button>
+      <button data-p="tasks">Задачи</button>
+      <button data-p="review">Ревью</button>
       <button data-p="settings">Настройки</button>
     </nav>
-    <main>
-      <section class="panel" id="p-summary">
-        <h2>Сводка на сегодня</h2>
-        <div id="summary"><p class="muted">Загрузка…</p></div>
-      </section>
-
-      <section class="panel" id="p-today">
-        <details class="card">
-          <summary>Как начать: пять шагов</summary>
-          <ol class="plain">
-            <li>Распакуйте архив в отдельную папку и запустите <code>start.cmd</code> (Windows) или <code>start.sh</code>.</li>
-            <li>Откройте <code>http://127.0.0.1:7777</code> в браузере.</li>
-            <li>Раздел «Задачи»: добавьте первую задачу из письма.</li>
-            <li>Раздел «КАФО»: укажите адрес хранилища и нажмите «Сверить версии».</li>
-            <li>Раздел «Ревью недели»: нажмите «Собрать ревью» в конце недели.</li>
-          </ol>
-          <p class="muted">Подробная инструкция — <code>docs/user-guide.md</code>.</p>
-        </details>
-        <div id="today"><p class="muted">Загрузка…</p></div>
-      </section>
-
-      <section class="panel" id="p-tasks" hidden>
-        <h2>Задачи</h2>
-        <div id="tasks"></div>
-      </section>
-
-      <section class="panel" id="p-cafo" hidden>
-        <h2>КАФО</h2>
-        <div class="row">
-          <button class="btn" id="sync-cafo">Сверить версии</button>
-          <span class="muted" id="cafo-hint"></span>
+  </header>
+  <main>
+    <section class="panel" id="p-summary">
+      <div class="page-context">Сводка</div>
+      <div id="summary">
+        <div class="statbar" aria-hidden="true">
+          <div class="skeleton skeleton-line"></div>
+          <div class="skeleton skeleton-line"></div>
+          <div class="skeleton skeleton-line"></div>
+          <div class="skeleton skeleton-line"></div>
         </div>
-        <div id="cafo"></div>
-      </section>
+      </div>
+    </section>
 
-      <section class="panel" id="p-diagrams" hidden>
-        <h2>Схемы и расхождения</h2>
-        <p class="muted">Выберите файл draw.io и впишите интеграции из КАФО по одной в строке в виде «Источник → Приёмник».</p>
-        <div class="row">
-          <input type="file" id="diagram-file" accept=".drawio,.xml">
-          <button class="btn" id="compare">Сверить</button>
-        </div>
-        <textarea id="cafo-list" class="draft" rows="4" placeholder="Сервис платежей → Kafka"></textarea>
-        <div id="comparison"></div>
-      </section>
+    <section class="panel" id="p-today" hidden>
+      <div id="today"><p class="muted">Загрузка…</p></div>
+    </section>
 
-      <section class="panel" id="p-facts" hidden>
-        <h2>Факты и решения</h2>
-        <div id="facts"></div>
-      </section>
+    <section class="panel" id="p-quiz" hidden>
+      <h2 class="page-title">Проверка фактов</h2>
+      <div class="quiz-wrap">
+        <div id="quiz"><p class="muted">Загрузка…</p></div>
+      </div>
+    </section>
 
-      <section class="panel" id="p-quiz" hidden>
-        <h2>Проверка фактов</h2>
-        <p class="muted">Ежедневная проверка: подтвердить, признать недостоверным или пропустить.</p>
-        <p class="muted" id="quiz-hint"></p>
-        <div id="quiz"></div>
-      </section>
+    <section class="panel" id="p-card" hidden>
+      <h2 class="page-title">Карточка запроса</h2>
+      <div id="card"><p class="muted">Загрузка…</p></div>
+    </section>
 
-      <section class="panel" id="p-review" hidden>
-        <h2>Ревью недели</h2>
-        <div class="row">
-          <button class="btn" id="build-review">Собрать ревью</button>
-          <span class="muted" id="review-hint"></span>
-        </div>
-        <div id="review"></div>
-      </section>
+    <section class="panel" id="p-cafo" hidden>
+      <h2 class="page-title">КАФО</h2>
+      <div class="row" style="margin-bottom:var(--space-3)">
+        <button class="btn" id="sync-cafo" type="button">Сверить версии</button>
+        <span class="faint" id="cafo-hint"></span>
+      </div>
+      <div id="cafo"><p class="muted">Загрузка…</p></div>
+    </section>
 
-      <section class="panel" id="p-settings" hidden>
-        <h2>Настройки</h2>
-        <table id="config"></table>
-      </section>
-    </main>
-  </div>
+    <section class="panel" id="p-diagrams" hidden>
+      <h2 class="page-title">Схемы</h2>
+      <p class="muted" style="margin:0 0 var(--space-3)">Диаграммы draw.io: выберите файл и впишите интеграции из КАФО по одной в строке в виде «Источник → Приёмник». Программа только читает, не меняет.</p>
+      <div class="row">
+        <input type="file" id="diagram-file" accept=".drawio,.xml">
+        <button class="btn" id="compare" type="button">Сверить</button>
+      </div>
+      <textarea id="cafo-list" class="draft" rows="4" placeholder="Сервис платежей → Kafka"></textarea>
+      <h3 class="sub">Расхождения с КАФО</h3>
+      <div id="comparison"></div>
+    </section>
+
+    <section class="panel" id="p-tasks" hidden>
+      <h2 class="page-title">Задачи</h2>
+      <p class="muted" style="margin:0 0 var(--space-3)">Всё, что пришло из писем, файлов, схем, Jira или добавлено вручную. Ничего не удаляется.</p>
+      <div id="tasks"><p class="muted">Загрузка…</p></div>
+    </section>
+
+    <section class="panel" id="p-review" hidden>
+      <h2 class="page-title">Ревью недели</h2>
+      <div class="row" style="margin-bottom:var(--space-3)">
+        <button class="btn" id="build-review" type="button">Собрать ревью</button>
+        <span class="faint" id="review-hint"></span>
+      </div>
+      <div id="review"><p class="muted">Отчёт пока не собран.</p></div>
+    </section>
+
+    <section class="panel" id="p-settings" hidden>
+      <h2 class="page-title">Настройки</h2>
+      <div id="settings"><p class="muted">Загрузка…</p></div>
+    </section>
+  </main>
   <script type="module" src="/app.js"></script>
 </body>
 </html>

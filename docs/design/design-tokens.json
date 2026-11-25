@@ -1,0 +1,114 @@
+{
+  "$schema": "ui-spec tokens v1",
+  "meta": {
+    "product": "Ассистент архитектора",
+    "target": "офлайн, системные шрифты, без CDN и сборки",
+    "viewport": { "min": "1280px", "primary": "1366x768", "max": "1920px" }
+  },
+  "color": {
+    "background": {
+      "page": "#f4f5f7",
+      "panel": "#ffffff",
+      "chip": "#eef1f5",
+      "draft": "#fbfcfd",
+      "banner": "#fff9e6"
+    },
+    "text": {
+      "primary": "#1b1f24",
+      "secondary": "#5b6672",
+      "onAccent": "#ffffff",
+      "link": "#1f5fa8",
+      "bannerText": "#5b4200"
+    },
+    "border": {
+      "default": "#d7dce2",
+      "focus": "#1f5fa8",
+      "banner": "#e6d2a8"
+    },
+    "accent": {
+      "default": "#1f5fa8",
+      "hover": "#174a85",
+      "pressed": "#123a69"
+    },
+    "status": {
+      "ok": { "text": "#1d6b3a", "border": "#bcd9c6", "background": "#eef7f1" },
+      "warn": { "text": "#8a5a00", "border": "#e6d2a8", "background": "#fdf6e7" },
+      "bad": { "text": "#8f2a22", "border": "#e3bcb8", "background": "#fbeceb" }
+    },
+    "priority": {
+      "escalation": { "text": "#8f2a22", "background": "#fdecea" },
+      "deadline": { "text": "#8a5a00", "background": "#fff4e0" },
+      "instruction": { "text": "#1b1f24", "background": "#eef1f5" },
+      "neutral": { "text": "#5b6672", "background": "#eef1f5" }
+    }
+  },
+  "spacing": {
+    "0": "0px",
+    "1": "4px",
+    "2": "8px",
+    "3": "12px",
+    "4": "16px",
+    "5": "20px",
+    "6": "24px",
+    "8": "32px",
+    "10": "40px"
+  },
+  "typography": {
+    "fontFamily": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif",
+    "fontFamilyMono": "ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace",
+    "size": {
+      "caption": "12px",
+      "small": "13px",
+      "body": "14px",
+      "base": "15px",
+      "subtitle": "16px",
+      "title": "18px",
+      "display": "28px"
+    },
+    "weight": {
+      "regular": 400,
+      "medium": 600
+    },
+    "lineHeight": {
+      "tight": 1.2,
+      "dense": 1.3,
+      "base": 1.5
+    },
+    "maxSizesPerScreen": 3
+  },
+  "radius": {
+    "sm": "6px",
+    "md": "8px",
+    "pill": "999px"
+  },
+  "rowHeight": {
+    "min": "40px",
+    "max": "44px"
+  },
+  "duration": {
+    "fast": "100ms",
+    "base": "150ms",
+    "maxAnimation": "150ms",
+    "skeletonThreshold": "300ms"
+  },
+  "elevation": {
+    "none": "none",
+    "focusRing": "0 0 0 2px var(--color-border-focus)"
+  },
+  "breakpoint": {
+    "minSupported": "1280px",
+    "primaryTarget": "1366px",
+    "maxSupported": "1920px"
+  },
+  "contrast": {
+    "minTextToBackground": 4.5,
+    "minSecondaryTextToBackground": 4.5
+  },
+  "limits": {
+    "maxRowsBeforeShowAll": 7,
+    "maxAccentColorsPerScreen": 1,
+    "maxFontSizesPerScreen": 3,
+    "todayActionCards": 3,
+    "quizBatchMax": 10
+  }
+}
