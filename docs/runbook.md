@@ -72,15 +72,17 @@ AA_REVIEW_SCHEDULE="пятница,16"
 /opt/assistant/current   # файл с номером версии
 ```
 
-Установка новой версии:
+Установка новой версии одной командой:
 
 ```bash
 systemctl stop architect-assistant
-unzip architect-assistant.zip -d /opt/assistant/releases/0.2.0
-node /opt/assistant/releases/0.2.0/install/rollback.js --activate 0.2.0
+AA_RELEASES=/opt/assistant/releases AA_CURRENT=/opt/assistant/current \
+  node install/update.js --archive architect-assistant.zip
 systemctl start architect-assistant
 curl -s http://127.0.0.1:7777/api/health      # integrity должен быть "ok"
 ```
+
+Скрипт сам определяет версию из манифеста, распаковывает её, проверяет каждый файл по хэшу и только потом переключает указатель. Если проверка не прошла, версия остаётся распакованной, но не активной — работать продолжит предыдущая.
 
 Откат занимает секунды:
 

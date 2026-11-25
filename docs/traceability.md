@@ -94,13 +94,13 @@
 | FR-40 | проверка `apiVersion`, миграция в `docs/plugins.md` | `test/plugins/contract.test.js` | готово |
 | FR-41 | `install/build.js`, `start.cmd`, `start.sh` | распаковка и запуск проверены вручную | готово |
 | FR-42 | `src/bundle/integrity.js`, `manifest.json` в архиве, `/api/health` | `test/bundle/integrity.test.js`, живая проверка подмены файла | готово |
-| FR-43 | данные вне папки программы | — | частично: ручная замена архива |
+| FR-43 | `install/update.js`: распаковка, проверка целостности, активация; откат `install/rollback.js` | `test/bundle/update.test.js`, живой прогон на архиве | готово |
 | FR-44 | `install/rollback.js` | `test/bundle/rollback.test.js` | готово |
 
 ## 9. Итог
 
-- **Готово:** 48 требований из 53.
-- **Частично:** 5.
+- **Готово:** 49 требований из 53.
+- **Частично:** 4.
 - **Нет:** 0.
 
 **Чего не хватает больше всего** (по влиянию на приёмку):
