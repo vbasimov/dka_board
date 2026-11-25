@@ -12,6 +12,7 @@ import { diagramState } from '../diagrams/freshness.js'
 import { tasksToCsv, factsToMarkdown } from '../export/csv.js'
 import { fillTemplate, listTemplates } from '../templates/library.js'
 import { createReviewStore } from '../review/store.js'
+import { readTaskFiles, createTaskImporter } from '../import/files.js'
 import { buildReview } from '../review/build.js'
 import { unansweredFrom } from '../email/model.js'
 
@@ -402,6 +403,29 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
     }
     if (url.pathname === '/api/review/latest' && !isWrite) {
       send(response, 200, { latest: reviewStore ? reviewStore.latest() : null })
+      return
+    }
+    if (url.pathname === '/api/import/files' && isWrite) {
+      try {
+        const body = await readJson(request)
+        const dir = String(body.dir ?? '')
+        if (!dir) throw new Error('не указан каталог для импорта')
+        const { items, errors } = readTaskFiles(dir)
+        const result = createTaskImporter({ store }).import(items)
+        send(response, 200, { ...result, readErrors: errors })
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
+      return
+    }
+    if (url.pathname === '/api/import/tasks' && isWrite) {
+      try {
+        const body = await readJson(request)
+        const items = Array.isArray(body.items) ? body.items : []
+        send(response, 200, createTaskImporter({ store }).import(items))
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
       return
     }
     if (url.pathname === '/api/templates' && !isWrite) {
