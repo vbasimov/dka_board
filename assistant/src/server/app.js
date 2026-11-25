@@ -80,7 +80,7 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
       return
     }
     if (!url.pathname.startsWith('/api/') && serveStatic(response, url.pathname)) return
-    if (url.pathname === '/api/tasks') {
+    if (url.pathname === '/api/tasks' && !isWrite) {
       const query = url.searchParams.get('q') ?? ''
       send(response, 200, { items: store.search(query), total: store.count() })
       return

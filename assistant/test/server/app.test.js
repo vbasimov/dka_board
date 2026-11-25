@@ -49,3 +49,23 @@ test('health сообщает состояние целостности банд
     server.close()
   }
 })
+
+test('POST /api/tasks создаёт задачу, а не отдаёт список', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'server-'))
+  const server = createServer({ store: createStore(dir) })
+  await new Promise(done => server.listen(0, '127.0.0.1', done))
+  const { port } = server.address()
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/api/tasks`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'Согласовать интеграцию', source: 'письмо', dueAt: '2026-11-25' })
+    })
+    const body = await response.json()
+    assert.equal(response.status, 200)
+    assert.equal(body.created, true)
+    assert.equal(body.task.title, 'Согласовать интеграцию')
+  } finally {
+    server.close()
+  }
+})
