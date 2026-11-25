@@ -89,9 +89,11 @@ test('синхронизация КАФО помечает страницу ус
     assert.equal(response.status, 200)
     assert.equal(body.results[0].status, 'устарело')
     assert.equal(body.results[0].diff, 2)
+    assert.equal(body.results[0].refreshed, true)
 
     const list = await (await fetch(`http://127.0.0.1:${port}/api/cafo`)).json()
-    assert.equal(list.items[0].status, 'устарело')
+    assert.equal(list.items[0].status, 'свежо')
+    assert.equal(list.items[0].version, 14)
   } finally {
     server.close()
     confluence.close()

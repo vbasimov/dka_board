@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { compareTasks, dueDate, rank, reasonOf, todayKey } from '../domain/priority.js'
-import { fetchMeta } from '../cafo/freshness.js'
+import { fetchMeta, fetchPage } from '../cafo/freshness.js'
 import { buildDraft } from '../drafts/build.js'
 import { parseDrawio } from '../parse/drawio.js'
 import { compareIntegrations } from '../diagrams/compare.js'
@@ -183,7 +183,10 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
         return
       }
       try {
-        const results = await cafo.syncAll(pageId => fetchMeta(pageId, { baseUrl: cafoBaseUrl }))
+        const results = await cafo.syncAll(
+          pageId => fetchMeta(pageId, { baseUrl: cafoBaseUrl }),
+          pageId => fetchPage(pageId, { baseUrl: cafoBaseUrl })
+        )
         send(response, 200, { results })
       } catch (error) {
         send(response, 400, { error: error.message })

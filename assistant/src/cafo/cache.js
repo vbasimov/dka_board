@@ -29,7 +29,7 @@ export function createCafoCache(dir) {
   }
 
   return {
-    put({ pageId, title, spaceKey, version, body, url }) {
+    put({ pageId, title, spaceKey, version, body, url, ancestors }) {
       if (!pageId) throw new Error('pageId обязателен')
       const now = new Date().toISOString()
       const meta = {
@@ -38,6 +38,7 @@ export function createCafoCache(dir) {
         spaceKey: spaceKey ?? '',
         version: Number(version),
         url: url ?? '',
+        ancestors: Array.isArray(ancestors) ? ancestors : [],
         fetchedAt: now,
         checkedAt: now,
         status: STATUS.FRESH
@@ -61,11 +62,28 @@ export function createCafoCache(dir) {
       return [...metas.values()].sort((a, b) => a.title.localeCompare(b.title, 'ru'))
     },
 
-    async sync(pageId, fetchMeta) {
+    async sync(pageId, fetchMeta, fetchPage) {
       const meta = metas.get(pageId)
       if (!meta) throw new Error(`страница ${pageId} отсутствует в кэше`)
       const remote = await fetchMeta(pageId)
       const result = freshnessOf(meta, remote)
+
+      if (result.status === STATUS.STALE && typeof fetchPage === 'function') {
+        const fresh = await fetchPage(pageId)
+        if (fresh && typeof fresh.version === 'number') {
+          const updated = this.put({
+            pageId,
+            title: fresh.title || meta.title,
+            spaceKey: fresh.spaceKey || meta.spaceKey,
+            version: fresh.version,
+            body: fresh.body ?? '',
+            url: fresh.url || meta.url,
+            ancestors: fresh.ancestors ?? meta.ancestors
+          })
+          return { ...result, refreshed: true, meta: updated }
+        }
+      }
+
       const updated = {
         ...meta,
         status: result.status,
@@ -76,10 +94,10 @@ export function createCafoCache(dir) {
       return { ...result, meta: updated }
     },
 
-    async syncAll(fetchMeta) {
+    async syncAll(fetchMeta, fetchPage) {
       const results = []
-      for (const meta of metas.values()) {
-        results.push({ pageId: meta.pageId, ...(await this.sync(meta.pageId, fetchMeta)) })
+      for (const meta of [...metas.values()]) {
+        results.push({ pageId: meta.pageId, ...(await this.sync(meta.pageId, fetchMeta, fetchPage)) })
       }
       return results
     }

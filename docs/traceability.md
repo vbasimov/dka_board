@@ -39,12 +39,12 @@
 
 | FR | Реализация | Проверка | Состояние |
 |---|---|---|---|
-| FR-17 | `src/cafo/cache.js` | `test/cafo/cache.test.js` | частично: `ancestors` не хранится |
+| FR-17 | `src/cafo/cache.js` — `pageId`, `version`, `checkedAt`, `url`, `ancestors` | `test/cafo/cache.test.js` | готово |
 | FR-18 | `src/cafo/freshness.js` | `test/cafo/freshness.test.js`, 7 тестов | готово |
 | FR-19 | статус в строке источника в черновике | `test/drafts/build.test.js` | готово |
-| FR-20 | помечивание «устарело», замена фактов | `test/cafo/cache.test.js`, `test/facts/store.test.js` | частично: автоматической переиндексации нет |
+| FR-20 | перекачка страницы при росте версии (`fetchPage`), замена фактов | `test/cafo/cache.test.js`, `test/server/cafo-refresh.test.js` | готово |
 | FR-21 | таймаут 200 мс в тесте, «не сверено» | `test/cafo/freshness.test.js` | готово |
-| FR-22 | ключ по `pageId` | теста на переименование нет | частично |
+| FR-22 | ключ по `pageId`, переименование обновляет запись | `test/cafo/cache.test.js` | готово |
 
 ## 5. Схемы draw.io
 
@@ -99,8 +99,8 @@
 
 ## 9. Итог
 
-- **Готово:** 44 требований из 53.
-- **Частично:** 9.
+- **Готово:** 47 требований из 53.
+- **Частично:** 6.
 - **Нет:** 0.
 
 **Чего не хватает больше всего** (по влиянию на приёмку):

@@ -60,3 +60,47 @@ test('состояние сохраняется между запусками', 
   const reopened = createCafoCache(dir)
   assert.equal(reopened.list()[0].status, 'устарело')
 })
+
+test('в метаданных хранятся предки страницы', () => {
+  const { cache } = fresh()
+  cache.put({ ...page, ancestors: ['КАФО', 'Трайб B2C'] })
+  assert.deepEqual(cache.get('123').meta.ancestors, ['КАФО', 'Трайб B2C'])
+})
+
+test('при росте версии страница перекачивается и кэш обновляется', async () => {
+  const { cache } = fresh()
+  cache.put(page)
+  let fetched = 0
+  const result = await cache.sync(
+    '123',
+    async () => ({ version: 15 }),
+    async () => {
+      fetched += 1
+      return { version: 15, title: 'КАФО: Платежи и возвраты', spaceKey: 'ARCH', body: 'новое тело', ancestors: ['КАФО'] }
+    }
+  )
+  assert.equal(fetched, 1)
+  assert.equal(result.refreshed, true)
+  assert.equal(result.meta.version, 15)
+  assert.match(cache.get('123').body, /новое тело/)
+  assert.equal(cache.list().length, 1)
+})
+
+test('переименование страницы не создаёт вторую запись', async () => {
+  const { cache } = fresh()
+  cache.put(page)
+  await cache.sync('123', async () => ({ version: 13 }), async () => ({ version: 13, title: 'Платежи (новая область)', body: 'x' }))
+  const items = cache.list()
+  assert.equal(items.length, 1)
+  assert.equal(items[0].title, 'Платежи (новая область)')
+  assert.equal(items[0].pageId, '123')
+})
+
+test('если перекачка не удалась, остаётся статус «устарело»', async () => {
+  const { cache } = fresh()
+  cache.put(page)
+  const result = await cache.sync('123', async () => ({ version: 15 }), async () => null)
+  assert.equal(result.status, 'устарело')
+  assert.equal(result.refreshed, undefined)
+  assert.equal(cache.get('123').meta.version, 12)
+})
