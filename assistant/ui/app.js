@@ -395,9 +395,51 @@ $('#compare')?.addEventListener('click', async () => {
 
 paintSearch()
 loadSummary()
+loadDecisions()
 loadQuiz()
 loadToday()
 loadTasks()
 loadCafo()
 loadSettings()
 loadCard()
+
+document.addEventListener('click', async event => {
+  if (event.target.closest('[data-action="decision-add"]')) {
+    const title = $('#decision-title')?.value.trim() ?? ''
+    const source = $('#decision-source')?.value.trim() ?? ''
+    const hint = $('#decision-hint')
+    if (!title || !source) {
+      if (hint) hint.textContent = 'Нужны и решение, и источник'
+      return
+    }
+    try {
+      await getJson('/api/decisions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ title, source })
+      })
+      await loadDecisions()
+      await loadSummary()
+      const next = $('#decision-hint')
+      if (next) next.textContent = 'Решение зафиксировано'
+    } catch (error) {
+      if (hint) hint.textContent = `Не получилось: ${error.message}`
+    }
+    return
+  }
+
+  const cafoButton = event.target.closest('[data-action="decision-cafo"]')
+  if (cafoButton) {
+    try {
+      await getJson(`/api/decisions/${cafoButton.dataset.id}/cafo`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{}'
+      })
+      await loadDecisions()
+      await loadSummary()
+    } catch (error) {
+      fail('#decisions', error)
+    }
+  }
+})
