@@ -3,6 +3,7 @@ import { createStore } from '../src/store/tasks.js'
 import { createFactStore } from '../src/facts/store.js'
 import { createCafoCache } from '../src/cafo/cache.js'
 import { createServer } from '../src/server/app.js'
+import { createRagClient } from '../src/rag/client.js'
 
 const dataDir = process.env.AA_DATA ?? fileURLToPath(new URL('../.data/', import.meta.url))
 const port = Number(process.env.AA_PORT ?? 7777)
@@ -11,10 +12,15 @@ const cafoBaseUrl = process.env.AA_CONFLUENCE ?? ''
 const store = createStore(dataDir)
 const facts = createFactStore(dataDir)
 const cafo = createCafoCache(dataDir)
-const server = createServer({ store, facts, cafo, cafoBaseUrl, dataDir })
+const ragCommand = process.env.AA_RAG_CMD ?? ''
+const rag = ragCommand
+  ? createRagClient({ command: ragCommand.split(' ')[0], args: ragCommand.split(' ').slice(1) })
+  : null
+const server = createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag })
 
 server.listen(port, '127.0.0.1', () => {
   console.log(`Ассистент архитектора: http://127.0.0.1:${port}`)
   console.log(`Данные: ${dataDir}`)
   console.log(`Конфлюенс: ${cafoBaseUrl || 'не задан (сверка версий недоступна)'}`)
+  console.log(`Поиск по знаниям: ${ragCommand || 'не задан (AA_RAG_CMD)'}`)
 })

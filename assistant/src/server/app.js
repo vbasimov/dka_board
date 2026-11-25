@@ -65,7 +65,7 @@ function readJson(request, limit = 1_000_000) {
   })
 }
 
-export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir }) {
+export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag }) {
   return async (request, response) => {
     const url = new URL(request.url, 'http://127.0.0.1')
     const isWrite = request.method === 'POST'
@@ -269,6 +269,25 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir }) {
       })
       return
     }
+    if (url.pathname === '/api/rag/search') {
+      if (!rag) {
+        send(response, 503, { error: 'поиск по знаниям не подключён: задайте путь к sbm-search' })
+        return
+      }
+      try {
+        const query = url.searchParams.get('q') ?? ''
+        const items = await rag.search(query, {
+          limit: Number(url.searchParams.get('limit') ?? 8),
+          mode: url.searchParams.get('mode') ?? undefined,
+          sourceType: url.searchParams.get('sourceType') ?? undefined,
+          status: url.searchParams.get('status') ?? undefined
+        })
+        send(response, 200, { query, items })
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
+      return
+    }
     if (url.pathname === '/api/config') {
       send(response, 200, {
         'папка данных': dataDir ?? 'не задана',
@@ -285,8 +304,8 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir }) {
   }
 }
 
-export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, host = '127.0.0.1' }) {
-  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir }))
+export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, host = '127.0.0.1' }) {
+  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag }))
   server.host = host
   return server
 }
