@@ -68,3 +68,10 @@ test('содержимое запроса и источников экранир
   assert.doesNotMatch(html, /<b>Платежи/)
   assert.doesNotMatch(html, /<script>alert/)
 })
+
+test('на карточке есть отложить со следующим шагом', () => {
+  const html = renderCard({ task: { id: 't1', title: 'Разобрать схему' }, cafoItems: [], factItems: [] })
+  assert.match(html, /data-action="park"/)
+  assert.match(html, /id="next-step"/)
+  assert.match(html, /На чём остановились/)
+})

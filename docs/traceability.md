@@ -31,7 +31,7 @@
 | FR-11 | `src/drafts/build.js`, `/api/drafts/build` | `test/drafts/build.test.js` | готово |
 | FR-12 | блок «требует подтверждения», ссылки на источники | `test/drafts/build.test.js` | готово |
 | FR-13 | маршрута отправки нет вовсе | проверяется отсутствием | готово (по замыслу) |
-| FR-14 | структура «позиция — обоснование — шаг» | `test/drafts/build.test.js` | частично: блока «риски» нет |
+| FR-14 | структура «позиция — обоснование — риски — шаг» | `test/drafts/build.test.js` | готово |
 | FR-15 | `src/drafts/store.js`, `/api/drafts/save`, кнопка в карточке | `test/drafts/store.test.js`, `test/server/drafts-save.test.js` | готово |
 | FR-16 | `src/templates/library.js`, `/api/templates`, `templateId` в `/api/drafts/build` | `test/templates/library.test.js`, `test/server/templates.test.js` | готово |
 
@@ -76,7 +76,7 @@
 | FR-36 | ручной запуск | `test/server/review.test.js` | частично: правка отчёта не сохраняется |
 | FR-45 | `ui/onepager.js` | `test/server/onepager.test.js`, `test/ui/onepager.test.js` | готово |
 | FR-46 | `ui/quiz.js`, `/api/quiz` | `test/facts/quiz.test.js`, `test/ui/quiz.test.js` | готово |
-| FR-47 | `store.park`, блок «Продолжить» | теста маршрута парковки нет | частично |
+| FR-47 | `store.park`, кнопка «Отложить» на карточке, блок «Продолжить» | `test/server/park.test.js`, `test/ui/card.test.js` | готово |
 | FR-48 | `src/email/mcp.js`, `/api/email/sync` | `test/email/mcp.test.js`, `test/server/email-sync.test.js` | готово |
 | FR-49 | `src/email/bridge.js`, `/api/email/bridge` | `test/email/bridge.test.js`, `test/server/email-bridge.test.js` | готово |
 | FR-50 | `threadKeyOf`, поле `threadBy` | `test/email/unanswered.test.js` | частично: способ группировки не выводится в интерфейсе |
@@ -99,8 +99,8 @@
 
 ## 9. Итог
 
-- **Готово:** 39 требований из 53.
-- **Частично:** 14.
+- **Готово:** 41 требований из 53.
+- **Частично:** 12.
 - **Нет:** 0.
 
 **Чего не хватает больше всего** (по влиянию на приёмку):

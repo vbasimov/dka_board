@@ -55,6 +55,20 @@ export function buildDraft(input = {}) {
     for (const fact of proposed) lines.push(`— ${fact.claim}`)
   }
 
+  const risks = []
+  for (const fact of proposed) risks.push(`не подтверждено: ${fact.claim}`)
+  for (const fact of unreliable) risks.push(`признано недостоверным: ${fact.claim}`)
+  for (const fact of confirmed) {
+    const status = sourceStatus[fact.sourceRef]
+    if (status === 'устарело') risks.push(`источник устарел: ${fact.sourceRef}`)
+    if (status === 'не сверено') risks.push(`источник не сверен: ${fact.sourceRef}`)
+  }
+
+  if (risks.length > 0) {
+    lines.push('', 'Риски:')
+    for (const risk of risks) lines.push(`— ${risk}`)
+  }
+
   if (unreliable.length > 0) {
     lines.push('', 'Признано недостоверным (в ответ не включено):')
     for (const fact of unreliable) lines.push(`— ${fact.claim} (${fact.sourceRef})`)
@@ -83,7 +97,8 @@ export function buildDraft(input = {}) {
       proposed: proposed.length,
       superseded: superseded.length,
       unreliable: unreliable.length,
-      rag: ragItems.length
+      rag: ragItems.length,
+      risks: risks.length
     }
   }
 }

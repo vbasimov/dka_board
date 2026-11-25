@@ -58,3 +58,12 @@ test('готовый черновик считается безопасным, �
   const draft = buildDraft({ facts: [confirmed], sourceStatus: { 'page_id=123; version=14': 'свежо' } })
   assert.equal(isSafeToSend(draft), true)
 })
+
+test('в черновике есть блок рисков, если факты не подтверждены или источник устарел', () => {
+  const proposed = { ...confirmed, id: 'f2', claim: 'Будем использовать RabbitMQ', status: 'предложен' }
+  const draft = buildDraft({ facts: [confirmed, proposed], sourceStatus: { 'page_id=123; version=14': 'устарело' } })
+  assert.match(draft.text, /Риски:/)
+  assert.match(draft.text, /не подтверждено: Будем использовать RabbitMQ/)
+  assert.match(draft.text, /источник устарел/)
+  assert.ok(draft.counts.risks >= 2)
+})

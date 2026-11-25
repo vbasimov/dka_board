@@ -466,3 +466,27 @@ document.addEventListener('click', async event => {
     if (hint) hint.textContent = `Не получилось: ${error.message}`
   }
 })
+
+document.addEventListener('click', async event => {
+  if (!event.target.closest('[data-action="park"]')) return
+  if (!selectedTaskId) {
+    const hint = document.querySelector('#park-hint')
+    if (hint) hint.textContent = 'Сначала откройте задачу'
+    return
+  }
+  const nextStep = document.querySelector('#next-step')?.value.trim() ?? ''
+  try {
+    await getJson(`/api/tasks/${selectedTaskId}/park`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ nextStep })
+    })
+    await loadSummary()
+    await loadCard()
+    const hint = document.querySelector('#park-hint')
+    if (hint) hint.textContent = 'Шаг сохранён, задача в «Продолжить»'
+  } catch (error) {
+    const hint = document.querySelector('#park-hint')
+    if (hint) hint.textContent = `Не получилось: ${error.message}`
+  }
+})

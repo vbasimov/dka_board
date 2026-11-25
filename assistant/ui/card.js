@@ -79,6 +79,9 @@ export function renderCard(data = {}) {
     <div class="row" style="margin-top:var(--space-4)">
       <button class="btn" type="button" id="copy-draft">Скопировать черновик</button>
       <button class="btn ghost" type="button" data-action="draft-save">Сохранить как решение</button>
+      <button class="btn ghost" type="button" data-action="park">Отложить</button>
+      <input id="next-step" type="text" placeholder="На чём остановились" aria-label="Следующий шаг">
+      <span class="muted" id="park-hint" role="status"></span>
       <span class="muted" id="draft-hint" role="status"></span>
       <button class="btn ghost" type="button" data-action="postpone" data-id="${esc(task.id ?? '')}">Отложить</button>
     </div>
