@@ -7,6 +7,7 @@ import { fetchMeta } from '../cafo/freshness.js'
 import { buildDraft } from '../drafts/build.js'
 import { parseDrawio } from '../parse/drawio.js'
 import { compareIntegrations } from '../diagrams/compare.js'
+import { loadDiagram } from '../parse/sources.js'
 import { buildReview } from '../review/build.js'
 import { unansweredFrom } from '../email/model.js'
 
@@ -66,7 +67,7 @@ function readJson(request, limit = 1_000_000) {
   })
 }
 
-export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions, drafts }) {
+export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions, drafts, plugins }) {
   return async (request, response) => {
     const url = new URL(request.url, 'http://127.0.0.1')
     const isWrite = request.method === 'POST'
@@ -214,7 +215,15 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
     if (url.pathname === '/api/diagrams/compare' && isWrite) {
       try {
         const body = await readJson(request)
-        const xml = String(body.xml ?? '')
+        let xml = String(body.xml ?? '')
+        if (!xml && body.path) {
+          const loaded = await loadDiagram({ path: String(body.path) })
+          if (loaded.unsupported) {
+            send(response, 200, { unsupported: true, reason: loaded.reason })
+            return
+          }
+          xml = loaded.xml
+        }
         if (!xml.includes('<mxfile')) throw new Error('ожидается файл draw.io (mxfile)')
         const [diagram] = parseDrawio(xml).diagrams
         if (!diagram) throw new Error('в файле не найдено ни одной схемы')
@@ -467,6 +476,25 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
       })
       return
     }
+    if (url.pathname === '/api/plugins' && !isWrite) {
+      send(response, 200, plugins ? { plugins: plugins.list(), rejected: plugins.rejected ?? [] } : { plugins: [], rejected: [] })
+      return
+    }
+    if (url.pathname.startsWith('/api/plugins/') && url.pathname.endsWith('/run') && isWrite) {
+      if (!plugins) {
+        send(response, 503, { error: 'плагины не подключены' })
+        return
+      }
+      try {
+        const name = url.pathname.split('/')[3]
+        const body = await readJson(request)
+        const result = await plugins.run(name, String(body.command ?? ''), body.payload ?? {})
+        send(response, 200, { result })
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
+      return
+    }
     if (url.pathname === '/api/config') {
       send(response, 200, {
         'папка данных': dataDir ?? 'не задана',
@@ -483,8 +511,8 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
   }
 }
 
-export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions, drafts, host = '127.0.0.1' }) {
-  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail, bridge, decisions, drafts }))
+export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions, drafts, plugins, host = '127.0.0.1' }) {
+  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail, bridge, decisions, drafts, plugins }))
   server.host = host
   return server
 }

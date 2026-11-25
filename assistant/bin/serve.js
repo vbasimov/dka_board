@@ -10,6 +10,7 @@ import { createMailClient } from '../src/email/mcp.js'
 import { createEmailBridge } from '../src/email/bridge.js'
 import { createDecisionStore } from '../src/decisions/store.js'
 import { createDraftStore } from '../src/drafts/store.js'
+import { createPluginRegistry } from '../src/plugins/registry.js'
 import { execFile } from 'node:child_process'
 
 const dataDir = process.env.AA_DATA ?? fileURLToPath(new URL('../.data/', import.meta.url))
@@ -42,14 +43,18 @@ const index = indexCommand
   : null
 const decisions = createDecisionStore(dataDir)
 const drafts = createDraftStore(dataDir)
+const pluginsDir = process.env.AA_PLUGINS_DIR ?? `${dataDir}/плагины`
+const plugins = createPluginRegistry({ dir: pluginsDir, logger: console })
+plugins.load()
 const bridge = createEmailBridge({ dir: dataDir, index })
-const server = createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail, bridge, decisions, drafts })
+const server = createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail, bridge, decisions, drafts, plugins })
 
 server.listen(port, '127.0.0.1', () => {
   console.log(`Ассистент архитектора: http://127.0.0.1:${port}`)
   console.log(`Данные: ${dataDir}`)
   console.log(`Конфлюенс: ${cafoBaseUrl || 'не задан (сверка версий недоступна)'}`)
   console.log(`Почта: ${myAddresses.length ? myAddresses.join(', ') : 'адреса не заданы (AA_MY_ADDRESSES)'}; сервер: ${mailCommand || 'не задан (AA_MAIL_CMD)'}`)
+  console.log(`Плагины: ${pluginsDir} (${plugins.list().length})`)
   console.log(`Индексация писем: ${indexCommand || 'не задана (AA_INDEX_CMD)'}`)
   console.log(`Поиск по знаниям: ${mcpCommand ? `MCP (${mcpCommand})` : ragCommand ? `CLI (${ragCommand})` : 'не задан (AA_MCP_CMD или AA_RAG_CMD)'}`)
 })

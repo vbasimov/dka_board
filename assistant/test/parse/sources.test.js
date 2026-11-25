@@ -3,7 +3,6 @@ import assert from 'node:assert/strict'
 import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { extractFromPng, loadDiagram, readDrawioFile } from '../../src/parse/sources.js'
 import { parseDrawio } from '../../src/parse/drawio.js'
 
@@ -68,7 +67,7 @@ function tempDir(t) {
 }
 
 test('читает файл .drawio с диска', () => {
-  const xml = readDrawioFile(fileURLToPath(FIXTURE))
+  const xml = readDrawioFile(FIXTURE)
   assert.equal(typeof xml, 'string')
   assert.match(xml, /<mxfile/)
   assert.equal(parseDrawio(xml).diagrams[0].nodes.length, 2)
@@ -95,6 +94,8 @@ test('неизвестное расширение и отсутствующий 
 
 test('извлекает XML из текстового чанка tEXt с ключом mxfile', () => {
   assert.equal(extractFromPng(makePng(EMBEDDED_XML)), EMBEDDED_XML)
+  assert.equal(extractFromPng(makePng(EMBEDDED_XML, 'author')), null)
+  assert.equal(extractFromPng(makePng('')), null)
 })
 
 test('раскодирует URL-кодированный XML, как во встроенных диаграммах draw.io', () => {
@@ -119,6 +120,13 @@ test('бинарный мусор не распознаётся как PNG и к
   assert.equal(extractFromPng(garbage), null)
   assert.equal(extractFromPng(Buffer.from('совсем не png', 'utf8')), null)
   assert.equal(extractFromPng(Buffer.alloc(0)), null)
+  const truncated = Buffer.concat([
+    PNG_SIGNATURE,
+    Buffer.from([0x00, 0x00, 0x00, 0x64]),
+    Buffer.from('tEXt', 'ascii'),
+    Buffer.from('mxfile\0<x', 'utf8')
+  ])
+  assert.equal(extractFromPng(truncated), null)
 
   const broken = join(dir, 'мусор.png')
   writeFileSync(broken, garbage)

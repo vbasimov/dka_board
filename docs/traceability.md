@@ -50,12 +50,12 @@
 
 | FR | Реализация | Проверка | Состояние |
 |---|---|---|---|
-| FR-23 | `src/parse/drawio.js` | `test/parse/drawio.test.js` | частично: 2 источника из 4 (файл и сжатый XML); вложение Confluence и PNG не сделаны |
+| FR-23 | `src/parse/sources.js`, `src/parse/drawio.js`, маршрут сравнения принимает `path` | `test/parse/sources.test.js`, `test/server/diagrams-path.test.js` | готово: файл, XML, PNG со встроенной схемой, вложение — через путь к файлу |
 | FR-24 | мультистраничность, `inflateRaw` | `test/parse/drawio.test.js` | готово |
 | FR-25 | дерево зон, `unparsed` | `test/parse/drawio.test.js` | готово |
 | FR-26 | нормализованный JSON | `test/parse/drawio.test.js` | готово |
 | FR-27 | `src/diagrams/compare.js` | `test/diagrams/compare.test.js` | готово |
-| FR-28 | — | — | нет: «не распознано» для картинок не реализовано |
+| FR-28 | `loadDiagram` в `src/parse/sources.js` | `test/parse/sources.test.js`, `test/server/diagrams-path.test.js` | готово: PNG без схемы → `unsupported` с причиной |
 | FR-29 | — | — | нет |
 
 ## 6. Факты
@@ -88,10 +88,10 @@
 
 | FR | Реализация | Проверка | Состояние |
 |---|---|---|---|
-| FR-37 | контракт описан в `docs/architecture.md` | — | нет: загрузчика плагинов нет |
-| FR-38 | — | — | нет |
-| FR-39 | — | — | нет |
-| FR-40 | — | — | нет |
+| FR-37 | `src/plugins/contract.js`, `src/plugins/registry.js`, `docs/plugins.md` | `test/plugins/contract.test.js`, `test/plugins/registry.test.js` | готово |
+| FR-38 | отказ при сетевых импортах в `registry.js` | `test/plugins/registry.test.js` | готово |
+| FR-39 | таймаут 2 с, перехват падений, журнал `errors` | `test/plugins/registry.test.js` | готово |
+| FR-40 | проверка `apiVersion`, миграция в `docs/plugins.md` | `test/plugins/contract.test.js` | готово |
 | FR-41 | `install/build.js`, `start.cmd`, `start.sh` | распаковка и запуск проверены вручную | готово |
 | FR-42 | — | — | нет: проверки целостности бандла нет |
 | FR-43 | данные вне папки программы | — | частично: ручная замена архива |
@@ -99,9 +99,9 @@
 
 ## 9. Итог
 
-- **Готово:** 27 требований из 53.
-- **Частично:** 15.
-- **Нет:** 12.
+- **Готово:** 33 требования из 53.
+- **Частично:** 14.
+- **Нет:** 6.
 
 **Чего не хватает больше всего** (по влиянию на приёмку):
 

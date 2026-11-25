@@ -1,14 +1,20 @@
 import { readFileSync } from 'node:fs'
 import { extname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
 const TEXT_EXTENSIONS = new Set(['.drawio', '.xml', '.drawio.xml'])
 const UNSUPPORTED_IMAGE_REASON = 'это изображение без исходных данных схемы'
 
-function assertPath(filePath) {
-  if (typeof filePath !== 'string' || filePath.trim() === '') {
+function resolvePath(value) {
+  if (value instanceof URL) {
+    if (value.protocol !== 'file:') throw new Error('путь к файлу схемы должен быть локальным')
+    return fileURLToPath(value)
+  }
+  if (typeof value !== 'string' || value.trim() === '') {
     throw new Error('не указан путь к файлу схемы')
   }
+  return value
 }
 
 function extensionOf(filePath) {
@@ -27,12 +33,12 @@ function readFile(filePath) {
 }
 
 export function readDrawioFile(filePath) {
-  assertPath(filePath)
-  const extension = extensionOf(filePath)
+  const path = resolvePath(filePath)
+  const extension = extensionOf(path)
   if (!TEXT_EXTENSIONS.has(extension)) {
     throw new Error('неизвестное расширение файла схемы: ожидается .drawio, .xml или .drawio.xml')
   }
-  return readFile(filePath).toString('utf8')
+  return readFile(path).toString('utf8')
 }
 
 function normalizeXml(raw) {
@@ -69,7 +75,7 @@ export function extractFromPng(buffer) {
     const type = buffer.subarray(offset + 4, offset + 8).toString('ascii')
     const dataStart = offset + 8
     const dataEnd = dataStart + length
-    if (dataEnd + 4 > buffer.length) return null
+    if (dataEnd > buffer.length) return null
 
     if (type === 'tEXt') {
       const value = textChunkValue(buffer.subarray(dataStart, dataEnd))
@@ -86,12 +92,11 @@ export function extractFromPng(buffer) {
 }
 
 export function loadDiagram(input = {}) {
-  const filePath = input?.path
-  assertPath(filePath)
-  const extension = extensionOf(filePath)
+  const path = resolvePath(input?.path)
+  const extension = extensionOf(path)
   if (extension === '.png') {
-    const xml = extractFromPng(readFile(filePath))
+    const xml = extractFromPng(readFile(path))
     return xml ? { xml } : { unsupported: true, reason: UNSUPPORTED_IMAGE_REASON }
   }
-  return { xml: readDrawioFile(filePath) }
+  return { xml: readDrawioFile(path) }
 }

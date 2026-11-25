@@ -35,6 +35,7 @@ AA_MAIL_CMD="node /opt/mcp-email/dist/index.js"
 AA_MAIL_FOLDER=INBOX
 AA_MCP_CMD="sbm-search-mcp"
 AA_INDEX_CMD="sbm-search index --incremental --dir /var/lib/sbm"
+AA_PLUGINS_DIR=/var/lib/architect-assistant/плагины
 ```
 
 Почтовые переменные (`USER`, `PASSWORD`, `SMTP_FROM`, `LDAP_BIND_DN`, `LDAP_BIND_PASSWORD`) передаются только через окружение процесса, в файл не пишутся.
@@ -91,3 +92,4 @@ systemctl start architect-assistant
 - Программа не отправляет письма: только готовит текст.
 - Данные лежат в `AA_DATA`; в папке могут быть копии писем — не размещать в общих ресурсах.
 - Секреты — только в окружении процесса, файл `600`.
+- Плагины выполняются в процессе программы: доверяйте только тем, чей код вы читали. Сетевые импорты и выход за папку плагина загрузчик блокирует, но это защита от случайности, а не песочница.
