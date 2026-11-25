@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { createStore } from '../src/store/tasks.js'
 import { createFactStore } from '../src/facts/store.js'
 import { createCafoCache } from '../src/cafo/cache.js'
@@ -11,6 +11,9 @@ import { createMailClient } from '../src/email/mcp.js'
 import { createEmailBridge } from '../src/email/bridge.js'
 import { createDecisionStore } from '../src/decisions/store.js'
 import { createDraftStore } from '../src/drafts/store.js'
+import { buildReview } from '../src/review/build.js'
+import { createReviewStore } from '../src/review/store.js'
+import { startScheduler } from '../src/review/schedule.js'
 import { createPluginRegistry } from '../src/plugins/registry.js'
 import { verifyManifest } from '../src/bundle/integrity.js'
 import { execFile } from 'node:child_process'
@@ -29,11 +32,13 @@ try {
 let integrity = 'нет манифеста'
 try {
   const bundleDir = fileURLToPath(new URL('../', import.meta.url))
-  const manifest = JSON.parse(readFileSync(new URL('../manifest.json', import.meta.url), 'utf8'))
+  const manifestPath = new URL('../manifest.json', import.meta.url)
+  if (!existsSync(manifestPath)) throw new Error('запуск из исходников, манифест не создан')
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
   const check = verifyManifest(bundleDir, manifest)
   integrity = check.ok ? 'ok' : `повреждено: ${[...check.missing, ...check.modified].join(', ')}`
 } catch (error) {
-  console.error('Проверка целостности не удалась:', error.message)
+  if (!/исходников/.test(error.message)) console.error('Проверка целостности не удалась:', error.message)
   integrity = 'нет манифеста'
 }
 
@@ -63,6 +68,21 @@ const index = indexCommand
     })
   : null
 const decisions = createDecisionStore(dataDir)
+const reviewStore = createReviewStore(dataDir)
+let scheduler = null
+if (process.env.AA_REVIEW_SCHEDULE) {
+  const [weekday = 'пятница', hour = '16'] = process.env.AA_REVIEW_SCHEDULE.split(',')
+  scheduler = startScheduler({
+    run: async () => {
+      const review = buildReview({ tasks: store.all(), facts: facts.all(), cafo: cafo.list() })
+      const saved = reviewStore.save(review.markdown, { suffix: 'по-расписанию' })
+      console.log(`Ревью собрано по расписанию: ${saved.name}`)
+      return review.counts
+    },
+    options: { weekday, hour: Number(hour) }
+  })
+  console.log(`Ревью по расписанию: ${weekday}, после ${hour}:00`)
+}
 const drafts = createDraftStore(dataDir)
 const pluginsDir = process.env.AA_PLUGINS_DIR ?? `${dataDir}/плагины`
 const plugins = createPluginRegistry({ dir: pluginsDir, logger: console })

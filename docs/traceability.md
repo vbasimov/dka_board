@@ -72,7 +72,7 @@
 | FR | Реализация | Проверка | Состояние |
 |---|---|---|---|
 | FR-34 | `src/review/build.js` | `test/review/build.test.js` | готово |
-| FR-35 | маршрут `/api/review/build` | `test/server/review.test.js` | частично: не отдельный скилл по расписанию |
+| FR-35 | `src/review/schedule.js`, `AA_REVIEW_SCHEDULE`, файл `ревью-<дата>-по-расписанию.md` | `test/review/schedule.test.js` | готово |
 | FR-36 | ручной запуск, правка отчёта сохраняется файлом | `test/review/store.test.js`, `test/server/review.test.js` | готово |
 | FR-45 | `ui/onepager.js` | `test/server/onepager.test.js`, `test/ui/onepager.test.js` | готово |
 | FR-46 | `ui/quiz.js`, `/api/quiz` | `test/facts/quiz.test.js`, `test/ui/quiz.test.js` | готово |
@@ -99,8 +99,8 @@
 
 ## 9. Итог
 
-- **Готово:** 47 требований из 53.
-- **Частично:** 6.
+- **Готово:** 48 требований из 53.
+- **Частично:** 5.
 - **Нет:** 0.
 
 **Чего не хватает больше всего** (по влиянию на приёмку):

@@ -36,6 +36,7 @@ AA_MAIL_FOLDER=INBOX
 AA_MCP_CMD="sbm-search-mcp"
 AA_INDEX_CMD="sbm-search index --incremental --dir /var/lib/sbm"
 AA_PLUGINS_DIR=/var/lib/architect-assistant/плагины
+AA_REVIEW_SCHEDULE="пятница,16"
 ```
 
 Почтовые переменные (`USER`, `PASSWORD`, `SMTP_FROM`, `LDAP_BIND_DN`, `LDAP_BIND_PASSWORD`) передаются только через окружение процесса, в файл не пишутся.
