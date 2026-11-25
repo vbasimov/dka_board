@@ -8,6 +8,7 @@ import { buildDraft } from '../drafts/build.js'
 import { parseDrawio } from '../parse/drawio.js'
 import { compareIntegrations } from '../diagrams/compare.js'
 import { buildReview } from '../review/build.js'
+import { unansweredFrom } from '../email/model.js'
 
 function send(response, status, body) {
   const payload = JSON.stringify(body)
@@ -65,7 +66,7 @@ function readJson(request, limit = 1_000_000) {
   })
 }
 
-export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag }) {
+export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [] }) {
   return async (request, response) => {
     const url = new URL(request.url, 'http://127.0.0.1')
     const isWrite = request.method === 'POST'
@@ -256,8 +257,16 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag }) {
         })
         .map(task => ({ ...task, rank: rank(task, now), reason: reasonOf(task, now) }))
         .sort((a, b) => compareTasks(a, b, now))
-      const unanswered = open
-        .filter(task => task.source === 'письмо' && task.answered !== true)
+      const fromEmail = email ? unansweredFrom(email.all(), myAddresses) : []
+      const unanswered = fromEmail.length
+        ? fromEmail.map(message => ({
+            id: message.id,
+            title: message.subject ?? '(без темы)',
+            reason: message.unread ? `от ${message.from}: не прочитано` : `от ${message.from}`,
+            source: 'письмо',
+            dueAt: null
+          }))
+        : open.filter(task => task.source === 'письмо' && task.answered !== true)
         .map(task => ({ ...task, rank: rank(task, now), reason: reasonOf(task, now) }))
         .sort((a, b) => compareTasks(a, b, now))
       const pages = cafo ? cafo.list() : []
@@ -297,6 +306,43 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag }) {
       }
       return
     }
+    if (url.pathname === '/api/email/messages' && isWrite) {
+      if (!email) {
+        send(response, 503, { error: 'хранилище писем не подключено' })
+        return
+      }
+      try {
+        const body = await readJson(request)
+        const incoming = Array.isArray(body.messages) ? body.messages : []
+        let created = 0
+        for (const message of incoming) {
+          if (email.add(message).created) created += 1
+        }
+        send(response, 200, { accepted: incoming.length, created, total: email.count() })
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
+      return
+    }
+    if (url.pathname === '/api/email/unanswered') {
+      if (!email) {
+        send(response, 200, { items: [] })
+        return
+      }
+      const list = unansweredFrom(email.all(), myAddresses)
+      send(response, 200, {
+        items: list.map(message => ({
+          id: message.id,
+          title: message.subject ?? '(без темы)',
+          from: message.from ?? '',
+          date: message.date ?? '',
+          unread: message.unread === true,
+          threadId: message.threadId
+        })),
+        total: list.length
+      })
+      return
+    }
     if (url.pathname === '/api/config') {
       send(response, 200, {
         'папка данных': dataDir ?? 'не задана',
@@ -313,8 +359,8 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag }) {
   }
 }
 
-export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, host = '127.0.0.1' }) {
-  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag }))
+export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], host = '127.0.0.1' }) {
+  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses }))
   server.host = host
   return server
 }
