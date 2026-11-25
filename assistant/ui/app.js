@@ -2,6 +2,7 @@ import { renderToday, esc } from './today.js'
 import { renderOnepager } from './onepager.js'
 import { renderQuiz } from './quiz.js'
 import { renderSearch } from './search.js'
+import { renderDecisions } from './decisions.js'
 import { renderCard } from './card.js'
 import { renderTasks, renderCafo, renderReview, renderComparison } from './lists.js'
 import { renderSettings } from './settings.js'
@@ -168,6 +169,15 @@ async function loadCard() {
     $('#card').innerHTML = renderCard({ task, cafoItems: cafoBody.items, factItems: factsBody.items })
   } catch (error) {
     fail('#card', error)
+  }
+}
+
+async function loadDecisions() {
+  try {
+    const body = await getJson('/api/decisions')
+    $('#decisions').innerHTML = renderDecisions({ items: body.items })
+  } catch (error) {
+    fail('#decisions', error)
   }
 }
 

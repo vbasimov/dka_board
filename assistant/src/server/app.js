@@ -66,7 +66,7 @@ function readJson(request, limit = 1_000_000) {
   })
 }
 
-export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge }) {
+export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions }) {
   return async (request, response) => {
     const url = new URL(request.url, 'http://127.0.0.1')
     const isWrite = request.method === 'POST'
@@ -94,7 +94,7 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
           const due = dueDate(task, now)
           return Boolean(due) && due < today
         }).length,
-        notInCafo: 0
+        notInCafo: decisions ? decisions.debts().length : 0
       }
       send(response, 200, { counts, tasks: ranked.slice(0, 3), feed: [] })
       return
@@ -282,7 +282,8 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
           cafoUnchecked: pages.filter(meta => meta.status === 'не_сверено').length,
           unanswered: unanswered.length,
           burning: burning.length,
-          resume: resume.length
+          resume: resume.length,
+          notInCafo: decisions ? decisions.debts().length : 0
         }
       })
       return
@@ -301,6 +302,42 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
           status: url.searchParams.get('status') ?? undefined
         })
         send(response, 200, { query, items })
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
+      return
+    }
+    if (url.pathname === '/api/decisions' && !isWrite) {
+      if (!decisions) {
+        send(response, 200, { items: [] })
+        return
+      }
+      const onlyDebts = url.searchParams.get('debts') === '1'
+      send(response, 200, { items: onlyDebts ? decisions.debts() : decisions.all(), debts: decisions.debts().length })
+      return
+    }
+    if (url.pathname === '/api/decisions' && isWrite) {
+      if (!decisions) {
+        send(response, 503, { error: 'журнал решений не подключён' })
+        return
+      }
+      try {
+        const body = await readJson(request)
+        send(response, 200, { decision: decisions.add(body) })
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
+      return
+    }
+    if (url.pathname.startsWith('/api/decisions/') && url.pathname.endsWith('/cafo') && isWrite) {
+      if (!decisions) {
+        send(response, 503, { error: 'журнал решений не подключён' })
+        return
+      }
+      try {
+        const id = url.pathname.split('/')[3]
+        const body = await readJson(request)
+        send(response, 200, { decision: decisions.markInCafo(id, body.cafoPageId) })
       } catch (error) {
         send(response, 400, { error: error.message })
       }
@@ -401,8 +438,8 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
   }
 }
 
-export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, host = '127.0.0.1' }) {
-  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail, bridge }))
+export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions, host = '127.0.0.1' }) {
+  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail, bridge, decisions }))
   server.host = host
   return server
 }

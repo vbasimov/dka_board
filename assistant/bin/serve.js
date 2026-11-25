@@ -8,6 +8,7 @@ import { createMcpClient } from '../src/rag/mcp.js'
 import { createEmailStore } from '../src/email/store.js'
 import { createMailClient } from '../src/email/mcp.js'
 import { createEmailBridge } from '../src/email/bridge.js'
+import { createDecisionStore } from '../src/decisions/store.js'
 import { execFile } from 'node:child_process'
 
 const dataDir = process.env.AA_DATA ?? fileURLToPath(new URL('../.data/', import.meta.url))
@@ -38,8 +39,9 @@ const index = indexCommand
       execFile(command, args, { timeout: 120000 }, error => (error ? reject(new Error(`индексация не удалась: ${error.message}`)) : resolve()))
     })
   : null
+const decisions = createDecisionStore(dataDir)
 const bridge = createEmailBridge({ dir: dataDir, index })
-const server = createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail, bridge })
+const server = createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail, bridge, decisions })
 
 server.listen(port, '127.0.0.1', () => {
   console.log(`Ассистент архитектора: http://127.0.0.1:${port}`)
