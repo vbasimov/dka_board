@@ -1,6 +1,6 @@
 # Состояние проекта
 
-Итоговый свод: [final-report.md](final-report.md). Развёртывание в контуре: [runbook.md](runbook.md). Проверка за 15 минут: [demo-first-day.md](demo-first-day.md). Сверка требований: [traceability.md](traceability.md).
+Итоговый свод: [final-report.md](final-report.md). Развёртывание в контуре: [runbook.md](runbook.md). Проверка за 15 минут: [demo-first-day.md](demo-first-day.md). Сверка требований: [traceability.md](traceability.md). Формальная приёмка: [acceptance-protocol.md](acceptance-protocol.md).
 
 Обновлено: 24.11.2026. Живой документ: что сделано, что проверено, что ждёт заказчика.
 
