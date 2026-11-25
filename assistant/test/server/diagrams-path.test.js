@@ -48,3 +48,20 @@ test('PNG без встроенной схемы честно помечаетс
     assert.match(body.reason, /изображение/)
   })
 })
+
+test('свежесть схемы сравнивается с сохранённым хэшем', async () => {
+  await withServer(async (base, dir) => {
+    const path = join(dir, 'schema2.drawio')
+    copyFileSync(fixture, path)
+    const first = await (await post(base, { path, cafo: [] })).json()
+    assert.equal(first.freshness, null)
+
+    const { fileDigest } = await import('../../src/parse/sources.js')
+    const digest = await fileDigest(path)
+    const same = await (await post(base, { path, cafo: [], cached: { digest } })).json()
+    assert.equal(same.freshness.status, 'свежо')
+
+    const stale = await (await post(base, { path, cafo: [], cached: { digest: 'deadbeef' } })).json()
+    assert.equal(stale.freshness.status, 'устарело')
+  })
+})

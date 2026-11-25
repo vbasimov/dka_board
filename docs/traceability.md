@@ -56,7 +56,7 @@
 | FR-26 | нормализованный JSON | `test/parse/drawio.test.js` | готово |
 | FR-27 | `src/diagrams/compare.js` | `test/diagrams/compare.test.js` | готово |
 | FR-28 | `loadDiagram` в `src/parse/sources.js` | `test/parse/sources.test.js`, `test/server/diagrams-path.test.js` | готово: PNG без схемы → `unsupported` с причиной |
-| FR-29 | — | — | нет |
+| FR-29 | `src/diagrams/freshness.js`, `fileDigest` в `sources.js`, маршрут сравнения возвращает `freshness` | `test/diagrams/freshness.test.js`, `test/server/diagrams-path.test.js` | готово |
 
 ## 6. Факты
 
@@ -99,8 +99,8 @@
 
 ## 9. Итог
 
-- **Готово:** 35 требований из 53.
-- **Частично:** 14.
+- **Готово:** 36 требований из 53.
+- **Частично:** 13.
 - **Нет:** 4.
 
 **Чего не хватает больше всего** (по влиянию на приёмку):

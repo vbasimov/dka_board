@@ -8,6 +8,7 @@ import { buildDraft } from '../drafts/build.js'
 import { parseDrawio } from '../parse/drawio.js'
 import { compareIntegrations } from '../diagrams/compare.js'
 import { loadDiagram } from '../parse/sources.js'
+import { diagramState } from '../diagrams/freshness.js'
 import { buildReview } from '../review/build.js'
 import { unansweredFrom } from '../email/model.js'
 
@@ -227,7 +228,14 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
         if (!xml.includes('<mxfile')) throw new Error('ожидается файл draw.io (mxfile)')
         const [diagram] = parseDrawio(xml).diagrams
         if (!diagram) throw new Error('в файле не найдено ни одной схемы')
-        send(response, 200, { diagram: diagram.name, result: compareIntegrations({ diagram, cafo: body.cafo ?? [] }) })
+        const freshness = body.path && body.cached
+          ? diagramState({ filePath: String(body.path), cached: body.cached })
+          : null
+        send(response, 200, {
+          diagram: diagram.name,
+          result: compareIntegrations({ diagram, cafo: body.cafo ?? [] }),
+          freshness
+        })
       } catch (error) {
         send(response, 400, { error: error.message })
       }
