@@ -7,6 +7,8 @@ import { createRagClient } from '../src/rag/client.js'
 import { createMcpClient } from '../src/rag/mcp.js'
 import { createEmailStore } from '../src/email/store.js'
 import { createMailClient } from '../src/email/mcp.js'
+import { createEmailBridge } from '../src/email/bridge.js'
+import { execFile } from 'node:child_process'
 
 const dataDir = process.env.AA_DATA ?? fileURLToPath(new URL('../.data/', import.meta.url))
 const port = Number(process.env.AA_PORT ?? 7777)
@@ -29,12 +31,21 @@ const mailMcp = mailCommand
 const mail = mailMcp ? createMailClient({ mcp: mailMcp, folder: process.env.AA_MAIL_FOLDER ?? 'INBOX' }) : null
 const email = createEmailStore(dataDir)
 const myAddresses = (process.env.AA_MY_ADDRESSES ?? '').split(',').map(item => item.trim()).filter(Boolean)
-const server = createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail })
+const indexCommand = process.env.AA_INDEX_CMD ?? ''
+const index = indexCommand
+  ? () => new Promise((resolve, reject) => {
+      const [command, ...args] = indexCommand.split(' ')
+      execFile(command, args, { timeout: 120000 }, error => (error ? reject(new Error(`индексация не удалась: ${error.message}`)) : resolve()))
+    })
+  : null
+const bridge = createEmailBridge({ dir: dataDir, index })
+const server = createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail, bridge })
 
 server.listen(port, '127.0.0.1', () => {
   console.log(`Ассистент архитектора: http://127.0.0.1:${port}`)
   console.log(`Данные: ${dataDir}`)
   console.log(`Конфлюенс: ${cafoBaseUrl || 'не задан (сверка версий недоступна)'}`)
   console.log(`Почта: ${myAddresses.length ? myAddresses.join(', ') : 'адреса не заданы (AA_MY_ADDRESSES)'}; сервер: ${mailCommand || 'не задан (AA_MAIL_CMD)'}`)
+  console.log(`Индексация писем: ${indexCommand || 'не задана (AA_INDEX_CMD)'}`)
   console.log(`Поиск по знаниям: ${mcpCommand ? `MCP (${mcpCommand})` : ragCommand ? `CLI (${ragCommand})` : 'не задан (AA_MCP_CMD или AA_RAG_CMD)'}`)
 })

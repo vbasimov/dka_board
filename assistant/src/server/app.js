@@ -66,7 +66,7 @@ function readJson(request, limit = 1_000_000) {
   })
 }
 
-export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail }) {
+export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge }) {
   return async (request, response) => {
     const url = new URL(request.url, 'http://127.0.0.1')
     const isWrite = request.method === 'POST'
@@ -346,6 +346,26 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
       }
       return
     }
+    if (url.pathname === '/api/email/bridge' && isWrite) {
+      if (!bridge || !email) {
+        send(response, 503, { error: 'мост в индекс не подключён' })
+        return
+      }
+      try {
+        const body = await readJson(request)
+        let messages = email.all()
+        if (body.fetch === true && mail) {
+          const fetched = await mail.fetch({ mailbox: body.folder ?? 'INBOX', limit: Number(body.limit ?? 20), read: Number(body.read ?? 10) })
+          for (const message of fetched.messages) email.add(message)
+          messages = fetched.messages.length ? fetched.messages : messages
+        }
+        const result = await bridge.sync(messages, { index: body.index === true })
+        send(response, 200, result)
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
+      return
+    }
     if (url.pathname === '/api/email/unanswered') {
       if (!email) {
         send(response, 200, { items: [] })
@@ -381,8 +401,8 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
   }
 }
 
-export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, host = '127.0.0.1' }) {
-  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail }))
+export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, host = '127.0.0.1' }) {
+  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail, bridge }))
   server.host = host
   return server
 }
