@@ -1,5 +1,6 @@
 import { mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { messageKey } from './model.js'
 
 const DIR = 'письма'
 
@@ -12,14 +13,14 @@ export function createEmailStore(dir) {
     if (!file.endsWith('.json')) continue
     try {
       const message = JSON.parse(readFileSync(join(folder, file), 'utf8'))
-      byKey.set(message.messageId ?? message.id, message)
+      byKey.set(messageKey(message) || message.messageId || message.id, message)
     } catch {
       // повреждённый файл не ломает запуск
     }
   }
 
   function keyOf(message) {
-    return String(message.messageId ?? message.id ?? '')
+    return messageKey(message) || String(message.messageId ?? message.id ?? '')
   }
 
   function save(message) {

@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { createEmailStore } from '../../src/email/store.js'
 
 const dir = () => mkdtempSync(join(tmpdir(), 'email-'))
-const message = over => ({ messageId: 'm-1', from: 'analyst@example.com', subject: 'Интеграция', date: '2026-11-20T09:00:00Z', seen: false, ...over })
+const message = over => ({ folder: 'INBOX', uid: 11, from: 'analyst@example.com', subject: 'Интеграция', date: '2026-11-20T09:00:00Z', flags: [], ...over })
 
 test('письма сохраняются и переживают перезапуск', () => {
   const path = dir()
@@ -27,4 +27,12 @@ test('повторное добавление того же письма не с
 test('письмо без идентификатора отклоняется', () => {
   const store = createEmailStore(dir())
   assert.throws(() => store.add({ subject: 'без id' }), /идентификатор/)
+})
+
+test('дедупликация идёт по папке и uid, а не по Message-ID', () => {
+  const store = createEmailStore(dir())
+  store.add(message({ folder: 'INBOX', uid: 1 }))
+  store.add(message({ folder: 'INBOX', uid: 1, subject: 'Интеграция (правка)' }))
+  store.add(message({ folder: 'Sent', uid: 1 }))
+  assert.equal(store.count(), 2)
 })

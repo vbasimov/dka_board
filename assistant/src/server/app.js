@@ -66,7 +66,7 @@ function readJson(request, limit = 1_000_000) {
   })
 }
 
-export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [] }) {
+export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail }) {
   return async (request, response) => {
     const url = new URL(request.url, 'http://127.0.0.1')
     const isWrite = request.method === 'POST'
@@ -324,6 +324,28 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
       }
       return
     }
+    if (url.pathname === '/api/email/sync' && isWrite) {
+      if (!mail || !email) {
+        send(response, 503, { error: 'почтовый сервер не подключён: задайте путь к mcp-email' })
+        return
+      }
+      try {
+        const body = await readJson(request)
+        const result = await mail.fetch({
+          mailbox: body.folder ?? 'INBOX',
+          limit: Number(body.limit ?? 20),
+          read: Number(body.read ?? 10)
+        })
+        let created = 0
+        for (const message of result.messages) {
+          if (email.add(message).created) created += 1
+        }
+        send(response, 200, { listed: result.listed.length, read: result.messages.length, created, total: email.count() })
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
+      return
+    }
     if (url.pathname === '/api/email/unanswered') {
       if (!email) {
         send(response, 200, { items: [] })
@@ -359,8 +381,8 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
   }
 }
 
-export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], host = '127.0.0.1' }) {
-  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses }))
+export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, host = '127.0.0.1' }) {
+  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail }))
   server.host = host
   return server
 }
