@@ -33,7 +33,7 @@
 | FR-13 | маршрута отправки нет вовсе | проверяется отсутствием | готово (по замыслу) |
 | FR-14 | структура «позиция — обоснование — шаг» | `test/drafts/build.test.js` | частично: блока «риски» нет |
 | FR-15 | `src/drafts/store.js`, `/api/drafts/save`, кнопка в карточке | `test/drafts/store.test.js`, `test/server/drafts-save.test.js` | готово |
-| FR-16 | — | — | нет |
+| FR-16 | `src/templates/library.js`, `/api/templates`, `templateId` в `/api/drafts/build` | `test/templates/library.test.js`, `test/server/templates.test.js` | готово |
 
 ## 4. КАФО и свежесть
 
@@ -99,9 +99,9 @@
 
 ## 9. Итог
 
-- **Готово:** 38 требований из 53.
+- **Готово:** 39 требований из 53.
 - **Частично:** 14.
-- **Нет:** 1.
+- **Нет:** 0.
 
 **Чего не хватает больше всего** (по влиянию на приёмку):
 

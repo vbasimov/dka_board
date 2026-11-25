@@ -10,6 +10,7 @@ import { compareIntegrations } from '../diagrams/compare.js'
 import { loadDiagram } from '../parse/sources.js'
 import { diagramState } from '../diagrams/freshness.js'
 import { tasksToCsv, factsToMarkdown } from '../export/csv.js'
+import { fillTemplate, listTemplates } from '../templates/library.js'
 import { buildReview } from '../review/build.js'
 import { unansweredFrom } from '../email/model.js'
 
@@ -209,7 +210,17 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
           sourceStatus,
           ragItems
         })
-        send(response, 200, { draft })
+        let template = null
+        if (body.templateId) {
+          const filled = fillTemplate(String(body.templateId), {
+            request: String(body.request ?? ''),
+            found: draft.counts.confirmed,
+            deadline: String(body.deadline ?? ''),
+            source: String(body.source ?? '')
+          })
+          template = { id: body.templateId, ...filled }
+        }
+        send(response, 200, { draft, template })
       } catch (error) {
         send(response, 400, { error: error.message })
       }
@@ -369,6 +380,10 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
       } catch (error) {
         send(response, 404, { error: error.message })
       }
+      return
+    }
+    if (url.pathname === '/api/templates' && !isWrite) {
+      send(response, 200, { items: listTemplates() })
       return
     }
     if (url.pathname === '/api/export/tasks.csv') {
