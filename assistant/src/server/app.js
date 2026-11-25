@@ -66,7 +66,7 @@ function readJson(request, limit = 1_000_000) {
   })
 }
 
-export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions }) {
+export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions, drafts }) {
   return async (request, response) => {
     const url = new URL(request.url, 'http://127.0.0.1')
     const isWrite = request.method === 'POST'
@@ -307,6 +307,50 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
       }
       return
     }
+    if (url.pathname === '/api/drafts/save' && isWrite) {
+      if (!drafts) {
+        send(response, 503, { error: 'хранилище черновиков не подключено' })
+        return
+      }
+      try {
+        const body = await readJson(request)
+        const saved = drafts.save({
+          subject: body.subject,
+          text: body.text,
+          citations: body.citations
+        })
+        let decision = null
+        if (decisions) {
+          decision = decisions.add({
+            title: saved.subject,
+            source: 'черновик',
+            sourceRef: saved.name,
+            rationale: String(body.text ?? '').slice(0, 240)
+          })
+        }
+        send(response, 200, { draft: saved, decision })
+      } catch (error) {
+        send(response, 400, { error: error.message })
+      }
+      return
+    }
+    if (url.pathname === '/api/drafts/saved' && !isWrite) {
+      send(response, 200, { items: drafts ? drafts.list() : [] })
+      return
+    }
+    if (url.pathname.startsWith('/api/drafts/saved/')) {
+      if (!drafts) {
+        send(response, 503, { error: 'хранилище черновиков не подключено' })
+        return
+      }
+      try {
+        const name = decodeURIComponent(url.pathname.replace('/api/drafts/saved/', ''))
+        send(response, 200, { name, content: drafts.read(name) })
+      } catch (error) {
+        send(response, 404, { error: error.message })
+      }
+      return
+    }
     if (url.pathname === '/api/decisions' && !isWrite) {
       if (!decisions) {
         send(response, 200, { items: [] })
@@ -438,8 +482,8 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
   }
 }
 
-export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions, host = '127.0.0.1' }) {
-  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail, bridge, decisions }))
+export function createServer({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses = [], mail, bridge, decisions, drafts, host = '127.0.0.1' }) {
+  const server = httpCreateServer(createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email, myAddresses, mail, bridge, decisions, drafts }))
   server.host = host
   return server
 }

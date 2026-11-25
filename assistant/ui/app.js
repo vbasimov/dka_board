@@ -443,3 +443,26 @@ document.addEventListener('click', async event => {
     }
   }
 })
+
+document.addEventListener('click', async event => {
+  if (!event.target.closest('[data-action="draft-save"]')) return
+  const text = $('#draft-text')?.textContent.trim() ?? ''
+  const hint = $('#draft-hint')
+  if (!text) {
+    if (hint) hint.textContent = 'Черновик пуст'
+    return
+  }
+  try {
+    const body = await getJson('/api/drafts/save', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ subject: 'Черновик ответа', text })
+    })
+    await loadDecisions()
+    await loadSummary()
+    const next = $('#draft-hint')
+    if (next) next.textContent = `Сохранено: ${body.draft.name}`
+  } catch (error) {
+    if (hint) hint.textContent = `Не получилось: ${error.message}`
+  }
+})

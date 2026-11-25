@@ -78,6 +78,8 @@ export function renderCard(data = {}) {
     ${sources}
     <div class="row" style="margin-top:var(--space-4)">
       <button class="btn" type="button" id="copy-draft">Скопировать черновик</button>
+      <button class="btn ghost" type="button" data-action="draft-save">Сохранить как решение</button>
+      <span class="muted" id="draft-hint" role="status"></span>
       <button class="btn ghost" type="button" data-action="postpone" data-id="${esc(task.id ?? '')}">Отложить</button>
     </div>
     <p class="faint" style="margin-top:8px">Отправка только вручную, из почтовой программы. Эта программа писем не отправляет.</p>
