@@ -64,3 +64,13 @@ test('устаревшие страницы считаются отдельно'
     server.close()
   }
 })
+
+test('для писем передаётся способ группировки', async () => {
+  const { server, base } = await setup()
+  try {
+    const body = await (await fetch(`${base}/api/onepager`)).json()
+    assert.ok(body.unanswered.every(item => item.threadBy === undefined || typeof item.threadBy === 'string'))
+  } finally {
+    server.close()
+  }
+})

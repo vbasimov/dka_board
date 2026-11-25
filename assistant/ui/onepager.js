@@ -35,7 +35,7 @@ function unansweredLine(task) {
   return `<div class="line">
     <div class="line-main">
       <div class="line-title">${esc(task.title)}</div>
-      <div class="line-sub">${esc(task.reason ?? 'ждёт ответа')}</div>
+      <div class="line-sub">${esc(task.reason ?? 'ждёт ответа')}${task.threadBy === 'тема' ? ' · цепочка по теме' : ''}</div>
     </div>
     <button class="btn sm ghost" type="button" data-goto="card" data-id="${esc(task.id ?? '')}">Ответить</button>
   </div>`

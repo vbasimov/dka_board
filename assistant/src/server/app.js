@@ -264,6 +264,7 @@ export function createApp({ store, facts, cafo, cafoBaseUrl, dataDir, rag, email
             title: message.subject ?? '(без темы)',
             reason: message.unread ? `от ${message.from}: не прочитано` : `от ${message.from}`,
             source: 'письмо',
+            threadBy: message.threadBy,
             dueAt: null
           }))
         : open.filter(task => task.source === 'письмо' && task.answered !== true)

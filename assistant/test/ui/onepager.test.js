@@ -96,3 +96,8 @@ test('подсказка состояния почты присутствует 
   assert.match(html, /id="mail-hint"/)
   assert.match(html, /role="status"/)
 })
+
+test('у письма видно, что цепочка собрана по теме', () => {
+  const html = renderOnepager({ unanswered: [{ id: 'm1', title: 'Re: Интеграция', reason: 'от a@b', threadBy: 'тема' }] })
+  assert.match(html, /цепочка по теме/)
+})
