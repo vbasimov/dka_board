@@ -11,7 +11,7 @@
 | FR-01 | `src/domain/email.js`, `POST /api/tasks`, кнопка «Добавить из письма» | `test/domain/email.test.js` | частично: разбор по правилам, без модели; точность на 30 письмах не измерялась |
 | FR-02 | быстрая форма в `ui/app.js` (`quick-add`) | теста нет | частично |
 | FR-03 | дедупликация по `sourceRef` в `src/store/tasks.js` | `test/store/tasks.test.js` | частично: импорт MCP/Jira не сделан |
-| FR-04 | `store.search`, маршрут `/api/tasks` | `test/store/tasks.test.js` (10 000 задач, 3 мс) | частично: фильтров в интерфейсе нет |
+| FR-04 | `store.search`, `/api/tasks`, фильтры по названию, источнику и состоянию в интерфейсе | `test/store/tasks.test.js` (10 000 задач, 3 мс), `test/ui/page.test.js`, jsdom-прогон | готово |
 | FR-05 | `src/export/csv.js`, `/api/export/tasks.csv`, `/api/export/facts.md` | `test/export/csv.test.js`, `test/server/export.test.js` | готово |
 
 ## 2. Сводка и приоритет
@@ -99,8 +99,8 @@
 
 ## 9. Итог
 
-- **Готово:** 41 требований из 53.
-- **Частично:** 12.
+- **Готово:** 42 требований из 53.
+- **Частично:** 11.
 - **Нет:** 0.
 
 **Чего не хватает больше всего** (по влиянию на приёмку):

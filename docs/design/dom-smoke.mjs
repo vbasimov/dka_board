@@ -1,8 +1,3 @@
-// Проверка интерфейса без браузера: поднимает index.html в jsdom, подменяет fetch фикстурами
-// и проверяет, что блоки отрисовались, кнопки почты работают, ошибок исполнения нет.
-// Требует разово: npm i jsdom (в проект не добавляется).
-// Запуск: node docs/design/dom-smoke.mjs
-
 import { readFileSync } from 'node:fs'
 import { JSDOM } from 'jsdom'
 
@@ -33,6 +28,8 @@ const fixtures = {
   '/api/quiz': { items: [{ id: 'f1', claim: 'Платежи передают события в Kafka', sourceType: 'КАФО', sourceRef: 'page_id=1; version=14' }] },
   '/api/email/sync': { listed: 2, read: 2, created: 2 },
   '/api/email/bridge': { written: 2, skipped: 0, indexed: false },
+  '/api/decisions': { items: [{ id: 'd1', title: 'Платежи в Kafka', decidedAt: '2026-11-20', source: 'протокол', inCafo: false }], debts: 1 },
+  '/api/drafts/save': { draft: { name: '2026-11-25-chernovik.md' }, decision: { id: 'd9' } },
   '/api/config': { 'папка данных': '/tmp/data', 'адрес Confluence': 'не задан' },
   '/api/rag/search?q=Kafka': { query: 'Kafka', items: [{ id: '42', title: 'КАФО: Платежи', snippet: 'События в Kafka', score: 0.91, sourceType: 'md', path: '/kb/platezhi.md' }] }
 }
@@ -73,7 +70,32 @@ if (syncButton) {
   syncButton.dispatchEvent(new window.MouseEvent('click', { bubbles: true }))
   await new Promise(resolve => setTimeout(resolve, 300))
 }
+checks['решения: строка долга'] = /Платежи в Kafka/.test(text('#decisions'))
+
 checks['почта: кнопка обновления сработала'] = /Писем получено: 2/.test(text('#mail-hint'))
+
+// открываем карточку из сводки, иначе черновика нет
+const openCard = document.querySelector('[data-goto="card"]')
+if (openCard) {
+  openCard.dispatchEvent(new window.MouseEvent('click', { bubbles: true }))
+  await new Promise(resolve => setTimeout(resolve, 300))
+}
+
+const saveDraft = document.querySelector('[data-action="draft-save"]')
+if (saveDraft) {
+  saveDraft.dispatchEvent(new window.MouseEvent('click', { bubbles: true }))
+  await new Promise(resolve => setTimeout(resolve, 250))
+}
+checks['карточка: черновик сохраняется как решение'] = /Сохранено: /.test(text('#draft-hint'))
+
+const taskQuery = document.querySelector('#task-query')
+if (taskQuery) {
+  taskQuery.value = 'Интеграция'
+  taskQuery.dispatchEvent(new window.Event('input', { bubbles: true }))
+  await new Promise(resolve => setTimeout(resolve, 100))
+}
+checks['задачи: фильтр по названию работает'] = /Интеграция/.test(text('#tasks'))
+checks['задачи: счётчик показан'] = /показано \d+ из \d+/.test(text('#task-count'))
 
 let failed = 0
 for (const [name, ok] of Object.entries(checks)) {

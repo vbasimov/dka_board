@@ -89,10 +89,28 @@ async function loadToday() {
   }
 }
 
+let allTasks = []
+
+function paintTasks() {
+  const query = ($('#task-query')?.value ?? '').trim().toLowerCase()
+  const source = $('#task-filter')?.value ?? ''
+  const status = $('#task-status')?.value ?? ''
+  const items = allTasks.filter(task => {
+    const matchesQuery = !query || String(task.title ?? '').toLowerCase().includes(query)
+    const matchesSource = !source || String(task.source ?? '') === source
+    const matchesStatus = !status || String(task.status ?? '') === status
+    return matchesQuery && matchesSource && matchesStatus
+  })
+  $('#tasks').innerHTML = renderTasks(items)
+  const counter = $('#task-count')
+  if (counter) counter.textContent = `показано ${items.length} из ${allTasks.length}`
+}
+
 async function loadTasks() {
   try {
     const body = await getJson('/api/tasks')
-    $('#tasks').innerHTML = renderTasks(body.items)
+    allTasks = body.items ?? []
+    paintTasks()
   } catch (error) {
     fail('#tasks', error)
   }
@@ -402,6 +420,13 @@ loadTasks()
 loadCafo()
 loadSettings()
 loadCard()
+
+document.addEventListener('input', event => {
+  if (event.target.id === 'task-query' || event.target.id === 'task-filter' || event.target.id === 'task-status') paintTasks()
+})
+document.addEventListener('change', event => {
+  if (event.target.id === 'task-filter') paintTasks()
+})
 
 document.addEventListener('click', async event => {
   if (event.target.closest('[data-action="decision-add"]')) {

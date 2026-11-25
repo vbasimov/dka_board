@@ -96,6 +96,22 @@
 
     <section class="panel" id="p-tasks" hidden>
       <h2 class="page-title">Задачи</h2>
+      <div class="toolbar">
+        <input id="task-query" type="search" placeholder="Поиск по названию" aria-label="Поиск задач">
+        <select id="task-status" aria-label="Фильтр по состоянию">
+          <option value="">любое состояние</option>
+          <option value="новая">новая</option>
+          <option value="в работе">в работе</option>
+          <option value="закрыта">закрыта</option>
+        </select>
+        <select id="task-filter" aria-label="Фильтр по источнику">
+          <option value="">все источники</option>
+          <option value="письмо">письмо</option>
+          <option value="файл">файл</option>
+          <option value="вручную">вручную</option>
+        </select>
+        <span class="muted" id="task-count" role="status"></span>
+      </div>
       <p class="muted" style="margin:0 0 var(--space-3)">Всё, что пришло из писем, файлов, схем, Jira или добавлено вручную. Ничего не удаляется.</p>
       <div id="tasks"><p class="muted">Загрузка…</p></div>
     </section>

@@ -67,3 +67,10 @@ test('на сводке есть обучалка «Как начать» с ш�
   assert.ok((block.match(/<li>/g) ?? []).length >= 6)
   assert.match(block, /Обновить почту/)
 })
+
+test('на экране задач есть поиск и фильтр по источнику', () => {
+  assert.match(html, /id="task-query"/)
+  assert.match(html, /id="task-filter"/)
+  assert.match(html, /id="task-status"/)
+  assert.match(html, /все источники/)
+})
